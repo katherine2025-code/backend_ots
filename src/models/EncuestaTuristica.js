@@ -20,12 +20,13 @@ const EncuestaTuristica = {
             `INSERT INTO encuestas_turisticas 
             (fecha_encuesta, genero, edad, pais_residencia, ciudad_residencia, 
              motivo_visita, noches_estadia, gasto_total, nivel_satisfaccion, 
-             probabilidad_retorno)
-            VALUES (?,?,?,?,?,?,?,?,?,?)`,
+             probabilidad_retorno, nombre_encuestador)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
             [data.fecha_encuesta, data.genero, data.edad, 
              data.pais_residencia, data.ciudad_residencia,
              data.motivo_visita, data.noches_estadia, data.gasto_total,
-             data.nivel_satisfaccion, data.probabilidad_retorno]
+             data.nivel_satisfaccion, data.probabilidad_retorno, 
+             data.nombre_encuestador || 'No especificado']
         );
         return result.insertId;
     },
@@ -35,14 +36,15 @@ const EncuestaTuristica = {
             e.fecha_encuesta, e.genero, e.edad, 
             e.pais_residencia, e.ciudad_residencia,
             e.motivo_visita, e.noches_estadia, e.gasto_total,
-            e.nivel_satisfaccion, e.probabilidad_retorno
+            e.nivel_satisfaccion, e.probabilidad_retorno,
+            e.nombre_encuestador || 'No especificado'
         ]);
         
         const [result] = await pool.query(
             `INSERT INTO encuestas_turisticas 
             (fecha_encuesta, genero, edad, pais_residencia, ciudad_residencia, 
              motivo_visita, noches_estadia, gasto_total, nivel_satisfaccion, 
-             probabilidad_retorno)
+             probabilidad_retorno, nombre_encuestador)
             VALUES ?`,
             [values]
         );

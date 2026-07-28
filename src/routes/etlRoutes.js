@@ -1,35 +1,38 @@
 const express = require('express');
 const router = express.Router();
-const etlController = require('../controller/etlController');
+const etlController = require('../controller/etlController'); // Asegúrate que la ruta sea correcta
 const { autenticar } = require('../middleware/authMiddleware');
 const { verificarRol } = require('../middleware/roleMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
-// Cargar archivo CSV
-router.post('/cargar', 
+// ==========================================
+// 1. RUTA DE CARGA (El frontend pide '/procesar')
+// ==========================================
+router.post('/procesar', 
     autenticar, 
-    verificarRol([1]),  //  Solo admin (id_rol = 1)
-    upload.single('archivo'), 
+    verificarRol([1]),  // Solo admin (id_rol = 1)
+    upload.single('archivo'), // Debe coincidir con el 'name' del input en el frontend
     etlController.cargarArchivo
 );
 
-// Historial
+// ==========================================
+// 2. RUTAS DE CONSULTA (Nombres alineados con el frontend)
+// ==========================================
+
+// El frontend pide '/estado-procesos'
+router.get('/estado-procesos', autenticar, etlController.obtenerEstadoProcesos);
+router.get('/proceso/:id/detalles', autenticar, etlController.obtenerDetallesProceso);
+
+// El frontend pide '/logs-errores'
+router.get('/logs-errores', autenticar, etlController.obtenerLogsErrores);
+
+// El frontend pide '/ejecuciones-programadas'
+router.get('/ejecuciones-programadas', autenticar, etlController.obtenerEjecucionesProgramadas);
+
+// Estas ya funcionaban, las mantenemos
 router.get('/historial', autenticar, etlController.obtenerHistorial);
-
-// Estado
-router.get('/estado', autenticar, etlController.obtenerEstadoProcesos);
-
-// Estadísticas
 router.get('/estadisticas', autenticar, etlController.obtenerEstadisticasDatos);
-
-// Tipos de datos
 router.get('/tipos-datos', autenticar, etlController.obtenerTiposDatos);
-
-// NUEVAS: Logs y programadas (evitan 404)
-router.get('/logs', autenticar, (req, res) => res.json([]));
-router.get('/programadas', autenticar, (req, res) => res.json([]));
-
-// Al final del archivo, antes de module.exports
 router.get('/detalles/:id', autenticar, etlController.obtenerDetallesProceso);
 
 module.exports = router;
