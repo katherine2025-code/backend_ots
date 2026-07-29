@@ -182,37 +182,178 @@ const obtenerDetallesProceso = async (req, res) => {
         const { id } = req.params;
         const pool = db.pool;
         
-        const [resultados] = await pool.query(
+        // 1. Obtener información del proceso
+        const [procesos] = await pool.query(
             `SELECT * FROM etl_procesos WHERE id_etl = ?`, 
             [id]
         );
         
-        if (resultados.length === 0) {
+        if (procesos.length === 0) {
             return res.status(404).json({ error: 'Proceso no encontrado' });
         }
         
-        const proceso = resultados[0];
+        const proceso = procesos[0];
         
-        // Obtener estadísticas de la tabla según el tipo
+        // 2. Calcular estadísticas según el tipo de datos
         let estadisticas = {};
-        if (proceso.tipo_datos === 'encuestas') {
-            const [stats] = await pool.query(
-                `SELECT COUNT(*) as total FROM encuestas_turisticas WHERE fecha_encuesta >= ?`,
-                [proceso.fecha_inicio]
-            );
-            estadisticas = stats[0];
-        } else if (proceso.tipo_datos === 'ocupacion') {
-            const [stats] = await pool.query(
-                `SELECT COUNT(*) as total FROM ocupacion_hotelera WHERE fecha >= ?`,
-                [proceso.fecha_inicio]
-            );
-            estadisticas = stats[0];
+        let datos_grafico = [];
+
+        // Detectar tipo de datos
+        const nombreArchivo = proceso.nombre_archivo.toLowerCase();
+        const esEncuesta = nombreArchivo.includes('encuesta') || 
+                         nombreArchivo.includes('turismo') ||
+                         nombreArchivo.includes('feriado');
+
+        if (esEncuesta) {
+            // ==========================================
+            // ESTADÍSTICAS COMPLETAS DE ENCUESTAS
+            // ==========================================
+            const [stats] = await pool.query(`
+                SELECT 
+                    COUNT(*) as total_registros,
+                    COUNT(DISTINCT pais_residencia) as paises_diferentes,
+                    AVG(nivel_satisfaccion) as satisfaccion_promedio,
+                    AVG(gasto_total) as gasto_promedio,
+                    AVG(edad) as edad_promedio,
+                    COUNT(CASE WHEN genero = 'Femenino' THEN 1 END) as total_femenino,
+                    COUNT(CASE WHEN genero = 'Masculino' THEN 1 END) as total_masculino,
+                    SUM(CASE WHEN nivel_satisfaccion >= 4 THEN 1 ELSE 0 END) as satisfechos,
+                    SUM(CASE WHEN nivel_satisfaccion < 3 THEN 1 ELSE 0 END) as insatisfechos
+                FROM encuestas_turisticas
+            `);
+
+            estadisticas = {
+                total_registros: stats[0].total_registros || 0,
+                registros_exitosos: stats[0].total_registros || 0,
+                registros_error: 0,
+                tasa_exito: 100,
+                paises_diferentes: stats[0].paises_diferentes || 0,
+                satisfaccion_promedio: parseFloat(stats[0].satisfaccion_promedio || 0).toFixed(1),
+                gasto_promedio: parseFloat(stats[0].gasto_promedio || 0).toFixed(2),
+                edad_promedio: parseFloat(stats[0].edad_promedio || 0).toFixed(1),
+                genero_femenino: stats[0].total_femenino || 0,
+                genero_masculino: stats[0].total_masculino || 0,
+                satisfechos: stats[0].satisfechos || 0,
+                insatisfechos: stats[0].insatisfechos || 0
+            };
+
+            // Gráfico 1: Distribución por País
+            const [paises] = await pool.query(`
+                SELECT 
+                    COALESCE(pais_residencia, 'No especificado') as pais,
+                    COUNT(*) as cantidad,
+                    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM encuestas_turisticas), 2) as porcentaje
+                FROM encuestas_turisticas
+                GROUP BY pais_residencia
+                ORDER BY cantidad DESC
+                LIMIT 10
+            `);
+            datos_grafico.push({ tipo: 'paises', datos: paises });
+
+            // Gráfico 2: Nivel de Satisfacción
+            const [satisfaccion] = await pool.query(`
+                SELECT 
+                    nivel_satisfaccion,
+                    COUNT(*) as cantidad,
+                    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM encuestas_turisticas), 2) as porcentaje
+                FROM encuestas_turisticas
+                WHERE nivel_satisfaccion IS NOT NULL
+                GROUP BY nivel_satisfaccion
+                ORDER BY nivel_satisfaccion
+            `);
+            datos_grafico.push({ tipo: 'satisfaccion', datos: satisfaccion });
+
+            // Gráfico 3: Distribución por Género
+            const [genero] = await pool.query(`
+                SELECT 
+                    COALESCE(genero, 'No especificado') as genero,
+                    COUNT(*) as cantidad,
+                    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM encuestas_turisticas), 2) as porcentaje
+                FROM encuestas_turisticas
+                GROUP BY genero
+            `);
+            datos_grafico.push({ tipo: 'genero', datos: genero });
+
+            // Gráfico 4: Gasto Promedio por País (Top 5)
+            const [gasto] = await pool.query(`
+                SELECT 
+                    pais_residencia as pais,
+                    COUNT(*) as total_encuestas,
+                    ROUND(AVG(gasto_total), 2) as gasto_promedio,
+                    ROUND(MIN(gasto_total), 2) as gasto_minimo,
+                    ROUND(MAX(gasto_total), 2) as gasto_maximo
+                FROM encuestas_turisticas
+                WHERE gasto_total > 0
+                GROUP BY pais_residencia
+                ORDER BY gasto_promedio DESC
+                LIMIT 5
+            `);
+            datos_grafico.push({ tipo: 'gasto_pais', datos: gasto });
+
+        } else {
+            // ==========================================
+            // ESTADÍSTICAS COMPLETAS DE OCUPACIÓN
+            // ==========================================
+            const [stats] = await pool.query(`
+                SELECT 
+                    COUNT(*) as total_registros,
+                    AVG(ocupacion_porcentaje) as ocupacion_promedio,
+                    AVG(tarifa_cobrada) as tarifa_promedio,
+                    SUM(checkin_nacionales + checkin_extranjeros) as total_huespedes,
+                    AVG(habitaciones_ocupadas) as habitaciones_promedio,
+                    MIN(ocupacion_porcentaje) as ocupacion_minima,
+                    MAX(ocupacion_porcentaje) as ocupacion_maxima
+                FROM ocupacion_hotelera
+            `);
+
+            estadisticas = {
+                total_registros: stats[0].total_registros || 0,
+                registros_exitosos: stats[0].total_registros || 0,
+                registros_error: 0,
+                tasa_exito: 100,
+                ocupacion_promedio: parseFloat(stats[0].ocupacion_promedio || 0).toFixed(1),
+                tarifa_promedio: parseFloat(stats[0].tarifa_promedio || 0).toFixed(2),
+                total_huespedes: stats[0].total_huespedes || 0,
+                habitaciones_promedio: parseFloat(stats[0].habitaciones_promedio || 0).toFixed(0),
+                ocupacion_minima: parseFloat(stats[0].ocupacion_minima || 0).toFixed(1),
+                ocupacion_maxima: parseFloat(stats[0].ocupacion_maxima || 0).toFixed(1)
+            };
+
+            // Gráfico 1: Ocupación por Fecha (últimos 30 días)
+            const [ocupacion] = await pool.query(`
+                SELECT 
+                    DATE(fecha) as fecha,
+                    ROUND(AVG(ocupacion_porcentaje), 2) as ocupacion_promedio,
+                    SUM(checkin_nacionales) as checkin_nacionales,
+                    SUM(checkin_extranjeros) as checkin_extranjeros
+                FROM ocupacion_hotelera
+                GROUP BY DATE(fecha)
+                ORDER BY fecha DESC
+                LIMIT 30
+            `);
+            datos_grafico.push({ tipo: 'ocupacion_tiempo', datos: ocupacion });
+
+            // Gráfico 2: Ocupación por Hotel
+            const [por_hotel] = await pool.query(`
+                SELECT 
+                    id_hotel,
+                    COUNT(*) as total_registros,
+                    ROUND(AVG(ocupacion_porcentaje), 2) as ocupacion_promedio,
+                    ROUND(AVG(tarifa_cobrada), 2) as tarifa_promedio
+                FROM ocupacion_hotelera
+                GROUP BY id_hotel
+                ORDER BY ocupacion_promedio DESC
+            `);
+            datos_grafico.push({ tipo: 'ocupacion_hotel', datos: por_hotel });
         }
-        
+
         res.json({
             proceso: proceso,
-            estadisticas: estadisticas
+            estadisticas: estadisticas,
+            datos_grafico: datos_grafico,
+            tipo_datos: esEncuesta ? 'encuestas' : 'ocupacion'
         });
+
     } catch (error) {
         console.error('Error obteniendo detalles:', error);
         res.status(500).json({ error: error.message });
