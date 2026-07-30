@@ -166,7 +166,7 @@ const obtenerEstadisticasDatos = async (req, res) => {
 const obtenerTiposDatos = async (req, res) => {
     try {
         const tipos = [
-            { tipo: 'ocupacion', nombre: 'Ocupación Hotelera', descripcion: 'Datos de ocupación de hoteles (Metodología MINTUR)', campos_requeridos: ['fecha', 'id_hotel', 'habitaciones_ocupadas', 'ocupacion_porcentaje'] },
+            { tipo: 'ocupacion', nombre: 'Ocupación Hotelera', descripcion: 'Datos de ocupación de hoteles', campos_requeridos: ['fecha', 'id_hotel', 'habitaciones_ocupadas', 'ocupacion_porcentaje'] },
             { tipo: 'clima', nombre: 'Datos Climáticos', descripcion: 'Temperatura, humedad, precipitación', campos_requeridos: ['fecha', 'temperatura', 'humedad', 'precipitacion'] },
             { tipo: 'feriados', nombre: 'Días Feriados', descripcion: 'Calendario de feriados', campos_requeridos: ['nombre', 'fecha_inicio', 'fecha_fin'] },
             { tipo: 'encuestas', nombre: 'Encuestas Turísticas', descripcion: 'Datos de encuestas a turistas y establecimientos', campos_requeridos: ['fecha_encuesta', 'genero', 'edad', 'pais_residencia'] }
