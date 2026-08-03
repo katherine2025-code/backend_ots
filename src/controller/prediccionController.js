@@ -16,33 +16,19 @@ const obtenerTodas = async (req, res) => {
     }
 };
 
-// Obtener métricas del modelo
+// Obtener métricas del modelo (conectado al microservicio Python ML)
 const obtenerMetricas = async (req, res) => {
     try {
-        // Métricas simuladas
-        const metricas = {
-            predicciones_hoy: 8,
-            precision_promedio: 87.5,
-            modelos: [
-                {
-                    modelo_nombre: 'Random Forest',
-                    mae: 2.5,
-                    rmse: 3.2,
-                    r2: 0.89
-                },
-                {
-                    modelo_nombre: 'XGBoost',
-                    mae: 2.3,
-                    rmse: 3.0,
-                    r2: 0.91
-                }
-            ]
-        };
-
-        res.json(metricas);
+        const response = await fetch('http://localhost:5000/entrenar', { method: 'POST' });
+        if (!response.ok) {
+            // Si el modelo aún no se ha entrenado en Python, intentar obtener estado o responder 400
+            return res.status(400).json({ error: 'El modelo ML aún no ha sido entrenado en el microservicio' });
+        }
+        const data = await response.json();
+        res.json(data.metricas || data);
     } catch (error) {
-        console.error('Error en métricas:', error);
-        res.status(500).json({ error: error.message });
+        console.error('Error al conectar con el microservicio ML:', error.message);
+        res.status(503).json({ error: 'Microservicio de Machine Learning en Python no disponible' });
     }
 };
 
