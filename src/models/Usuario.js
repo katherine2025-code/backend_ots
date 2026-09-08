@@ -1,7 +1,8 @@
+// models/Usuario.js - CORREGIDO
 const { sequelize } = require('../config/db');
 const { DataTypes } = require('sequelize');
 
-const Usuario = sequelize.define('usuarios', {
+const Usuario = sequelize.define('usuario', {
     id_usuario: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -36,16 +37,12 @@ const Usuario = sequelize.define('usuarios', {
         type: DataTypes.TINYINT,
         allowNull: false,
         defaultValue: 1
-    
-    
     },
-   fecha_creacion: {
-    type: DataTypes.DATE,
-    allowNull: true,
-    field: 'fecha_creacion'  
-}
-
-
+    fecha_creacion: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: DataTypes.NOW
+    }
 }, {
     tableName: 'usuarios',
     timestamps: false

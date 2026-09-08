@@ -1,13 +1,65 @@
+// models/index.js - VERSIÓN FINAL CORREGIDA
+const { sequelize } = require('../config/db');
+
+// Importar modelos - TODOS DEBEN ESTAR IMPORTADOS
+const Usuario = require('./Usuario');
+const Rol = require('./Rol');
+const Hotel = require('./Hotel');
+const OcupacionHotelera = require('./OcupacionHotelera');
+const Prediccion = require('./Prediccion');
+const Reporte = require('./Reporte');
+const EncuestaTuristica = require('./EncuestaTuristica');
+const ETLProceso = require('./ETLProceso');
+const Bitacora = require('./Bitacora');
+const Festivo = require('./Festivo');
+const Temporada = require('./Temporada');
+const VariableEstacional = require('./VariableEstacional');
+const ValidacionPrediccion = require('./ValidacionPrediccion');
+
+// RELACIONES - USAR LOS MODELOS IMPORTADOS
+
+// Usuario - Rol
+Rol.hasMany(Usuario, { foreignKey: 'id_rol' });
+Usuario.belongsTo(Rol, { foreignKey: 'id_rol' });
+
+// Hotel - OcupacionHotelera
+Hotel.hasMany(OcupacionHotelera, { foreignKey: 'id_hotel' });
+OcupacionHotelera.belongsTo(Hotel, { foreignKey: 'id_hotel' });
+
+// Hotel - Prediccion
+Hotel.hasMany(Prediccion, { foreignKey: 'id_hotel' });
+Prediccion.belongsTo(Hotel, { foreignKey: 'id_hotel' });
+
+// Hotel - ValidacionPrediccion
+Hotel.hasMany(ValidacionPrediccion, { foreignKey: 'hotel_id' });
+ValidacionPrediccion.belongsTo(Hotel, { foreignKey: 'hotel_id' });
+
+// Temporada - OcupacionHotelera
+Temporada.hasMany(OcupacionHotelera, { foreignKey: 'id_temporada' });
+OcupacionHotelera.belongsTo(Temporada, { foreignKey: 'id_temporada' });
+
+// Festivo - OcupacionHotelera
+Festivo.hasMany(OcupacionHotelera, { foreignKey: 'id_festivo' });
+OcupacionHotelera.belongsTo(Festivo, { foreignKey: 'id_festivo' });
+
+// Prediccion - ValidacionPrediccion
+Prediccion.hasMany(ValidacionPrediccion, { foreignKey: 'prediccion_id' });
+ValidacionPrediccion.belongsTo(Prediccion, { foreignKey: 'prediccion_id' });
+
+// Exportar
 module.exports = {
-    Usuario: require('./Usuario'),
-    Rol: require('./Rol'),
-    Bitacora: require('./Bitacora'),
-    Clima: require('./Clima'),
-    EncuestaTuristica: require('./EncuestaTuristica'),
-    ETLProceso: require('./ETLProceso'),
-    Festivo: require('./Festivo'),
-    Hotel: require('./Hotel'),
-    OcupacionHotelera: require('./OcupacionHotelera'),
-    Prediccion: require('./Prediccion'),
-    Reporte: require('./Reporte')
+    sequelize,
+    Usuario,
+    Rol,
+    Hotel,
+    OcupacionHotelera,
+    Prediccion,
+    Reporte,
+    EncuestaTuristica,
+    ETLProceso,
+    Bitacora,
+    Festivo,
+    Temporada,
+    VariableEstacional,
+    ValidacionPrediccion
 };

@@ -1,3 +1,4 @@
+// models/OcupacionHotelera.js - CORREGIDO
 const { sequelize } = require('../config/db');
 const { DataTypes } = require('sequelize');
 
@@ -11,11 +12,11 @@ const OcupacionHotelera = sequelize.define('ocupacion_hotelera', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
-    id_feriado: {
+    id_temporada: {
         type: DataTypes.INTEGER,
         allowNull: true
     },
-    id_clima: {
+    id_festivo: {
         type: DataTypes.INTEGER,
         allowNull: true
     },
@@ -33,6 +34,11 @@ const OcupacionHotelera = sequelize.define('ocupacion_hotelera', {
         allowNull: true,
         defaultValue: 0
     },
+    total_turistas: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0
+    },
     pernoctaciones: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -43,22 +49,82 @@ const OcupacionHotelera = sequelize.define('ocupacion_hotelera', {
         allowNull: true,
         defaultValue: 0
     },
-    tarifa_cobrada: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: true
+    habitaciones_disponibles: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0
+    },
+    habitaciones_totales: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0
     },
     ocupacion_porcentaje: {
         type: DataTypes.DECIMAL(5, 2),
         allowNull: true
     },
-    fecha_registro: {
-        type: DataTypes.DATE,
+    tarifa_cobrada: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
+    },
+    ingreso_total: {
+        type: DataTypes.DECIMAL(12, 2),
+        allowNull: true,
+        defaultValue: 0
+    },
+    fuente_dato: {
+        type: DataTypes.ENUM('Encuesta', 'Sistema', 'Manual', 'ETL'),
         allowNull: false,
-        defaultValue: DataTypes.NOW
+        defaultValue: 'Encuesta'
+    },
+    validado: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    creado_por: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    actualizado_por: {
+        type: DataTypes.INTEGER,
+        allowNull: true
     }
 }, {
     tableName: 'ocupacion_hotelera',
-    timestamps: false
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    indexes: [
+        { fields: ['id_hotel', 'fecha'] },
+        { fields: ['id_temporada'] },
+        { fields: ['fecha'] }
+    ]
+});
+
+// HOOKS: Calcular campos automáticamente
+OcupacionHotelera.beforeCreate((ocupacion) => {
+    if (ocupacion.checkin_nacionales !== null && ocupacion.checkin_extranjeros !== null) {
+        ocupacion.total_turistas = ocupacion.checkin_nacionales + ocupacion.checkin_extranjeros;
+    }
+    if (ocupacion.habitaciones_ocupadas && ocupacion.tarifa_cobrada) {
+        ocupacion.ingreso_total = ocupacion.habitaciones_ocupadas * ocupacion.tarifa_cobrada;
+    }
+    if (!ocupacion.ocupacion_porcentaje && ocupacion.habitaciones_ocupadas && ocupacion.habitaciones_totales) {
+        ocupacion.ocupacion_porcentaje = (ocupacion.habitaciones_ocupadas / ocupacion.habitaciones_totales) * 100;
+    }
+});
+
+OcupacionHotelera.beforeUpdate((ocupacion) => {
+    if (ocupacion.checkin_nacionales !== null && ocupacion.checkin_extranjeros !== null) {
+        ocupacion.total_turistas = ocupacion.checkin_nacionales + ocupacion.checkin_extranjeros;
+    }
+    if (ocupacion.habitaciones_ocupadas && ocupacion.tarifa_cobrada) {
+        ocupacion.ingreso_total = ocupacion.habitaciones_ocupadas * ocupacion.tarifa_cobrada;
+    }
+    if (!ocupacion.ocupacion_porcentaje && ocupacion.habitaciones_ocupadas && ocupacion.habitaciones_totales) {
+        ocupacion.ocupacion_porcentaje = (ocupacion.habitaciones_ocupadas / ocupacion.habitaciones_totales) * 100;
+    }
 });
 
 module.exports = OcupacionHotelera;

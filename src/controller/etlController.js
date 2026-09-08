@@ -14,7 +14,7 @@ const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5000';
  */
 const cargarArchivo = async (req, res) => {
     let procesoId = null;
-    
+
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'Debe subir un archivo CSV' });
@@ -35,7 +35,7 @@ const cargarArchivo = async (req, res) => {
 
         // Reenviar al microservicio Python
         console.log(' Enviando archivo al microservicio Python...');
-        
+
         const formData = new FormData();
         formData.append('file', fs.createReadStream(req.file.path), {
             filename: req.file.originalname,
@@ -63,8 +63,7 @@ const cargarArchivo = async (req, res) => {
             response.data.detalles?.join('; ') || null
         );
 
-                console.log(`[ETL] Proceso ${procesoId} finalizado. Estado: COMPLETADO`);
-
+        console.log(`[ETL] Proceso ${procesoId} finalizado. Estado: COMPLETADO`);
 
         // Eliminar archivo temporal
         if (fs.existsSync(req.file.path)) {
@@ -84,18 +83,18 @@ const cargarArchivo = async (req, res) => {
     } catch (error) {
         console.error(' ERROR en cargarArchivo:', error.message);
         console.error(' Detalles:', error.response?.data || error);
-        
+
         if (procesoId) {
             await ETLProceso.finalizar(procesoId, 'ERROR', 0, 0, error.message);
         }
-        
+
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
         }
 
-        res.status(500).json({ 
+        res.status(500).json({
             error: error.message,
-            detalles: error.response?.data 
+            detalles: error.response?.data
         });
     }
 };
@@ -131,7 +130,7 @@ const obtenerEstadoProcesos = async (req, res) => {
 const obtenerEstadisticasDatos = async (req, res) => {
     try {
         const pool = db.pool;
-        
+
         // Consultar procesos activos (EN_PROCESO o PENDIENTE)
         const [activos] = await pool.query(`
             SELECT COUNT(*) as count FROM etl_procesos 
@@ -181,28 +180,28 @@ const obtenerDetallesProceso = async (req, res) => {
     try {
         const { id } = req.params;
         const pool = db.pool;
-        
+
         // 1. Obtener información del proceso
         const [procesos] = await pool.query(
-            `SELECT * FROM etl_procesos WHERE id_etl = ?`, 
+            `SELECT * FROM etl_procesos WHERE id_etl = ?`,
             [id]
         );
-        
+
         if (procesos.length === 0) {
             return res.status(404).json({ error: 'Proceso no encontrado' });
         }
-        
+
         const proceso = procesos[0];
-        
+
         // 2. Calcular estadísticas según el tipo de datos
         let estadisticas = {};
         let datos_grafico = [];
 
         // Detectar tipo de datos
         const nombreArchivo = proceso.nombre_archivo.toLowerCase();
-        const esEncuesta = nombreArchivo.includes('encuesta') || 
-                         nombreArchivo.includes('turismo') ||
-                         nombreArchivo.includes('feriado');
+        const esEncuesta = nombreArchivo.includes('encuesta') ||
+            nombreArchivo.includes('turismo') ||
+            nombreArchivo.includes('feriado');
 
         if (esEncuesta) {
             // ==========================================
@@ -369,7 +368,7 @@ const obtenerLogsErrores = async (req, res) => {
         const limite = parseInt(req.query.limit) || 10;
         const pool = db.pool;
         const [logs] = await pool.query(`
-            SELECT id_etl, nombre_archivo, estado, registros_error, mensaje_error, fecha_fin 
+            SELECT id_etl, nombre_archivo, estado, registros_error, observacion, fecha_fin 
             FROM etl_procesos 
             WHERE estado IN ('ERROR', 'FALLIDO')
             ORDER BY fecha_fin DESC 
@@ -399,13 +398,13 @@ const obtenerEjecucionesProgramadas = async (req, res) => {
 // ==========================================
 // EXPORTAR TODAS LAS FUNCIONES
 // ==========================================
-module.exports = { 
-    cargarArchivo, 
+module.exports = {
+    cargarArchivo,
     obtenerHistorial,
     obtenerEstadoProcesos,
     obtenerEstadisticasDatos,
     obtenerTiposDatos,
     obtenerDetallesProceso,
-    obtenerLogsErrores,               // ✅ NUEVO
-    obtenerEjecucionesProgramadas     // ✅ NUEVO
+    obtenerLogsErrores,
+    obtenerEjecucionesProgramadas
 };

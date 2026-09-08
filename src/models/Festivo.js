@@ -1,44 +1,39 @@
+// models/Festivo.js - CORREGIDO
 const { sequelize } = require('../config/db');
 const { DataTypes } = require('sequelize');
 
 const Festivo = sequelize.define('festivo', {
-    id_feriado: {
+    id_festivo: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
+    },
+    fecha: {
+        type: DataTypes.DATEONLY,
+        allowNull: false,
+        unique: true
     },
     nombre: {
         type: DataTypes.STRING(100),
         allowNull: false
     },
-    fecha_inicio: {
-        type: DataTypes.DATEONLY,
-        allowNull: false
-    },
-    fecha_fin: {
-        type: DataTypes.DATEONLY,
-        allowNull: false
-    },
-    total_dias: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-    },
-    temporada: {
-        type: DataTypes.STRING(50),
-        allowNull: true
-    },
     descripcion: {
-        type: DataTypes.TEXT,
+        type: DataTypes.STRING(255),
         allowNull: true
     },
-    fecha_registro: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW
+    es_nacional: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    activo: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
     }
 }, {
-    tableName: 'feriados',
-    timestamps: false
+    tableName: 'festivos',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
 });
 
 module.exports = Festivo;

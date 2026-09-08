@@ -1,57 +1,66 @@
+// models/Hotel.js - CORREGIDO
 const { sequelize } = require('../config/db');
 const { DataTypes } = require('sequelize');
 
-const Hotel = sequelize.define('hoteles', {
+const Hotel = sequelize.define('hotel', {
     id_hotel: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
     },
     nombre: {
-        type: DataTypes.STRING(200),
+        type: DataTypes.STRING(100),
         allowNull: false
     },
     direccion: {
-        type: DataTypes.STRING(255),
-        allowNull: true
-    },
-    correo: {
-        type: DataTypes.STRING(150),
-        allowNull: true
-    },
-    telefono: {
-        type: DataTypes.STRING(50),
+        type: DataTypes.STRING(200),
         allowNull: true
     },
     categoria: {
-        type: DataTypes.STRING(50),
-        allowNull: true
+        type: DataTypes.ENUM('1', '2', '3', '4', '5'),
+        allowNull: false,
+        defaultValue: '3'
     },
-    parroquia: {
-        type: DataTypes.STRING(100),
-        allowNull: true
-    },
-    habitaciones_disponibles: {
+    habitaciones_totales: {
         type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+    },
+    ubicacion_lat: {
+        type: DataTypes.DECIMAL(10, 8),
         allowNull: true
     },
-    plazas_disponibles: {
+    ubicacion_lng: {
+        type: DataTypes.DECIMAL(11, 8),
+        allowNull: true
+    },
+    precio_promedio: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        defaultValue: 0
+    },
+    playa_cercana: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    distancia_playa: {
         type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'Distancia en metros'
+    },
+    servicios: {
+        type: DataTypes.JSON,
         allowNull: true
     },
     estado: {
-        type: DataTypes.TINYINT,
-        allowNull: true,
-        defaultValue: 1
-    },
-    fecha_registro: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW
+        type: DataTypes.ENUM('Activo', 'Inactivo'),
+        defaultValue: 'Activo'
     }
 }, {
     tableName: 'hoteles',
-    timestamps: false
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
 });
 
 module.exports = Hotel;

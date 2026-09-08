@@ -1,7 +1,8 @@
+// models/Rol.js - CORREGIDO (patrón unificado)
 const { sequelize } = require('../config/db');
 const { DataTypes } = require('sequelize');
 
-const Rol = sequelize.define('roles', {
+const Rol = sequelize.define('rol', {
     id_rol: {
         type: DataTypes.INTEGER,
         primaryKey: true,

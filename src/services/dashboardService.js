@@ -2,9 +2,20 @@ const OcupacionHotelera = require('../models/OcupacionHotelera');
 const EncuestaTuristica = require('../models/EncuestaTuristica');
 const Hotel = require('../models/Hotel');
 const Prediccion = require('../models/Prediccion');
+const { sequelize, pool } = require('../config/db');
 
 const obtenerKPIsGenerales = async (fechaInicio, fechaFin) => {
-    const ocupacionKPIs = await OcupacionHotelera.getKPIs(fechaInicio, fechaFin);
+    const [ocupacionRows] = await pool.query(`
+        SELECT 
+            AVG(ocupacion_porcentaje) as ocupacion_promedio,
+            SUM(checkin_nacionales) as total_nacionales,
+            SUM(checkin_extranjeros) as total_extranjeros,
+            AVG(tarifa_cobrada) as tarifa_promedio,
+            SUM(habitaciones_ocupadas) as total_habitaciones_ocupadas
+        FROM ocupacion_hotelera
+        WHERE fecha BETWEEN ? AND ?
+    `, [fechaInicio, fechaFin]);
+    const ocupacionKPIs = ocupacionRows[0] || {};
     const encuestaKPIs = await EncuestaTuristica.getKPIs(fechaInicio, fechaFin);
     const totalHoteles = (await Hotel.findAll()).length;
 
@@ -17,7 +28,6 @@ const obtenerKPIsGenerales = async (fechaInicio, fechaFin) => {
 };
 
 const obtenerOcupacionPorHotel = async (fechaInicio, fechaFin) => {
-    const { pool } = require('../config/db');
     const [rows] = await pool.query(`
         SELECT 
             h.nombre as hotel,
@@ -35,7 +45,6 @@ const obtenerOcupacionPorHotel = async (fechaInicio, fechaFin) => {
 };
 
 const obtenerTendenciaOcupacion = async (fechaInicio, fechaFin) => {
-    const { pool } = require('../config/db');
     const [rows] = await pool.query(`
         SELECT 
             DATE_FORMAT(fecha, '%Y-%m') as mes,
@@ -50,7 +59,10 @@ const obtenerTendenciaOcupacion = async (fechaInicio, fechaFin) => {
 };
 
 const obtenerPrediccionesRecientes = async () => {
-    return await Prediccion.findAll();
+    return await Prediccion.findAll({
+        limit: 20,
+        order: [['fecha_generacion', 'DESC']]
+    });
 };
 
 const obtenerEstadisticasDashboard = async () => {
@@ -103,21 +115,25 @@ const obtenerEstadisticasDashboard = async () => {
 };
 
 const obtenerMetricasModelo = async () => {
-    const metricas = await ModeloMetrica.findAll({
-        attributes: [
-            'modelo_nombre',
-            'tipo_evaluacion',
-            [sequelize.fn('AVG', sequelize.col('mae')), 'mae_promedio'],
-            [sequelize.fn('AVG', sequelize.col('rmse')), 'rmse_promedio'],
-            [sequelize.fn('AVG', sequelize.col('r2')), 'r2_promedio']
-        ],
-        group: ['modelo_nombre', 'tipo_evaluacion'],
-        raw: true
-    });
+    try {
+        const metricas = await Prediccion.findAll({
+            attributes: [
+                'modelo_utilizado',
+                [sequelize.fn('AVG', sequelize.col('precision_modelo')), 'precision_promedio'],
+                [sequelize.fn('AVG', sequelize.col('error_absoluto')), 'error_promedio'],
+                [sequelize.fn('COUNT', sequelize.col('id_prediccion')), 'total_predicciones']
+            ],
+            group: ['modelo_utilizado'],
+            raw: true
+        });
 
-    return {
-        modelos: metricas
-    };
+        return {
+            modelos: metricas
+        };
+    } catch (error) {
+        console.error('Error al obtener métricas del modelo:', error.message);
+        return { modelos: [] };
+    }
 };
 
 const obtenerOcupacionPorTemporada = async () => {
@@ -154,7 +170,6 @@ const obtenerOcupacionPorParroquia = async () => {
     return datos;
 };
 
-
 module.exports = { 
     obtenerKPIsGenerales, 
     obtenerOcupacionPorHotel, 
@@ -162,6 +177,6 @@ module.exports = {
     obtenerPrediccionesRecientes,
     obtenerEstadisticasDashboard,
     obtenerMetricasModelo,
-    obtenerOcupacionPorHotel,
+    obtenerOcupacionPorTemporada,
     obtenerOcupacionPorParroquia
 };
