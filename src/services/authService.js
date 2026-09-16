@@ -94,12 +94,18 @@ const registrar = async (datos) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // El auto-registro público solo puede crear Investigador (2) o Encuestador (3).
+    // El rol Administrador (1) nunca se asigna por este endpoint - solo otro
+    // administrador puede crearlo, desde /api/usuarios.
+    const ROLES_AUTOREGISTRO = [2, 3];
+    const idRolFinal = ROLES_AUTOREGISTRO.includes(id_rol) ? id_rol : 2;
+
     const usuario = await Usuario.create({
         nombres,
         apellidos,
         correo,
         password_hash: passwordHash,
-        id_rol: id_rol || 2,
+        id_rol: idRolFinal,
         estado: 1
     });
 

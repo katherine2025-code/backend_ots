@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prediccionController = require('../controller/prediccionController');
 const { autenticar } = require('../middleware/authMiddleware');
+const { verificarRol } = require('../middleware/roleMiddleware');
 
 // Todas las rutas requieren autenticación
 router.use(autenticar);
@@ -12,7 +13,8 @@ router.get('/metricas', prediccionController.obtenerMetricas);
 router.get('/:id', prediccionController.obtenerPorId);
 router.post('/', prediccionController.crear);
 router.post('/predict', prediccionController.predecir);
-router.post('/entrenar', prediccionController.entrenarModelo);
+// Entrenar el modelo es una operación pesada y de administración: solo admin
+router.post('/entrenar', verificarRol([1]), prediccionController.entrenarModelo);
 router.put('/:id/validar', prediccionController.validar);
 router.put('/:id/descartar', prediccionController.descartar);
 

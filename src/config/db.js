@@ -6,7 +6,7 @@ const mysql = require('mysql2/promise');
 const DB_HOST = process.env.DB_HOST || '127.0.0.1';
 const DB_PORT = process.env.DB_PORT || 3306;
 const DB_USER = process.env.DB_USER || 'root';
-const DB_PASSWORD = process.env.DB_PASSWORD || '';
+const DB_PASSWORD = process.env.DB_PASSWORD || 'vidamiaIsa2910.';
 const DB_NAME = process.env.DB_NAME || 'ots';
 
 console.log('Configuración de BD detectada (MySQL Local 8.0):');
@@ -47,14 +47,14 @@ async function connectDB() {
     try {
         await sequelize.authenticate();
         console.log('Conexión Sequelize exitosa');
-        
+
         await sequelize.sync({ alter: false });
         console.log('Modelos sincronizados con la base de datos');
-        
+
         const connection = await pool.getConnection();
         console.log('Conexión Pool MySQL exitosa');
         connection.release();
-        
+
         console.log('Base de datos conectada correctamente\n');
         return true;
 
@@ -66,7 +66,7 @@ async function connectDB() {
 }
 
 // 5. Exportar todo
-module.exports = { 
+module.exports = {
     sequelize,
     pool,
     connectDB

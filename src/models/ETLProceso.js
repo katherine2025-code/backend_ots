@@ -1,15 +1,15 @@
 const { pool } = require('../config/db');
 
 const ETLProceso = {
-    async iniciar(nombre_archivo) {
+    async iniciar(nombre_archivo, tipo_datos = null, id_usuario = null) {
         try {
-            console.log('[ETLProceso] Iniciando proceso:', nombre_archivo);
+            console.log('[ETLProceso] Iniciando proceso:', nombre_archivo, tipo_datos);
 
             const [result] = await pool.query(
-                `INSERT INTO etl_procesos 
-                (nombre_archivo, estado, fecha_inicio)
-                VALUES (?, 'EN_PROCESO', NOW())`,
-                [nombre_archivo]
+                `INSERT INTO etl_procesos
+                (nombre_archivo, tipo_datos, id_usuario, estado, fecha_inicio)
+                VALUES (?, ?, ?, 'EN_PROCESO', NOW())`,
+                [nombre_archivo, tipo_datos, id_usuario]
             );
 
             console.log('[ETLProceso] Proceso creado con ID:', result.insertId);
@@ -20,19 +20,20 @@ const ETLProceso = {
         }
     },
 
-    async finalizar(id, estado, exitosos, errores, observacion = null) {
+    async finalizar(id, estado, exitosos, errores, observacion = null, procesados = null) {
         try {
             console.log('[ETLProceso] Finalizando proceso:', id, estado);
 
             await pool.query(
-                `UPDATE etl_procesos 
-                 SET estado = ?, 
-                     registros_exitosos = ?, 
+                `UPDATE etl_procesos
+                 SET estado = ?,
+                     registros_exitosos = ?,
                      registros_error = ?,
+                     registros_procesados = ?,
                      observacion = ?,
                      fecha_fin = NOW()
                  WHERE id_etl = ?`,
-                [estado, exitosos, errores, observacion, id]
+                [estado, exitosos, errores, procesados ?? (exitosos + errores), observacion, id]
             );
 
             console.log('[ETLProceso] Proceso finalizado');

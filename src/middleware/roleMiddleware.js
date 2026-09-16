@@ -24,7 +24,7 @@ const verificarRol = (rolesPermitidos) => {
                 'admin': 1,
                 'administrador': 1,
                 'investigador': 2,
-                'analista': 3
+                'encuestador': 3
             };
             return userRol === mapeo[rol.toLowerCase()];
         });

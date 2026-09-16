@@ -31,6 +31,18 @@ const Reporte = {
             [tipo]
         );
         return rows;
+    },
+
+    // Alias de findById - el controller lo llama con este nombre (estilo Sequelize)
+    async findByPk(id) {
+        return this.findById(id);
+    },
+
+    async destroy({ where }) {
+        const [result] = await pool.query(
+            'DELETE FROM reportes WHERE id_reporte = ?', [where.id_reporte]
+        );
+        return result.affectedRows;
     }
 };
 

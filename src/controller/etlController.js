@@ -2,6 +2,7 @@ const ETLProceso = require('../models/ETLProceso');
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
+const path = require('path');
 const db = require('../config/db');
 
 // ==========================================
@@ -36,10 +37,15 @@ const cargarArchivo = async (req, res) => {
         // Reenviar al microservicio Python
         console.log(' Enviando archivo al microservicio Python...');
 
+        const ext = path.extname(req.file.originalname).toLowerCase();
+        const contentType = ext === '.xlsx'
+            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            : 'text/csv';
+
         const formData = new FormData();
         formData.append('file', fs.createReadStream(req.file.path), {
             filename: req.file.originalname,
-            contentType: 'text/csv'
+            contentType
         });
         formData.append('tipo', tipo);
 
@@ -55,12 +61,18 @@ const cargarArchivo = async (req, res) => {
         console.log(' Respuesta del microservicio:', response.data);
 
         // Actualizar proceso
+        const observaciones = [
+            ...(response.data.advertencias || []),
+            ...(response.data.detalles || [])
+        ].join('; ') || null;
+
         await ETLProceso.finalizar(
             procesoId,
             'COMPLETADO',
             response.data.registros_insertados || 0,
             response.data.registros_error || 0,
-            response.data.detalles?.join('; ') || null
+            observaciones,
+            response.data.total_registros || 0
         );
 
         console.log(`[ETL] Proceso ${procesoId} finalizado. Estado: COMPLETADO`);
@@ -77,6 +89,7 @@ const cargarArchivo = async (req, res) => {
             total: response.data.total_registros,
             exitosos: response.data.registros_insertados,
             errores: response.data.registros_error,
+            advertencias: response.data.advertencias || [],
             detalles: response.data.detalles || []
         });
 
@@ -84,16 +97,23 @@ const cargarArchivo = async (req, res) => {
         console.error(' ERROR en cargarArchivo:', error.message);
         console.error(' Detalles:', error.response?.data || error);
 
+        // Se propaga el status real que devolvió el microservicio Python
+        // (400 = archivo/columnas inválidas, 500 = fallo interno/BD) en vez
+        // de responder siempre 500, para que el frontend pueda distinguir
+        // un error del usuario de una falla del servidor.
+        const statusUpstream = error.response?.status;
+        const mensajeUpstream = error.response?.data?.detail || error.message;
+
         if (procesoId) {
-            await ETLProceso.finalizar(procesoId, 'ERROR', 0, 0, error.message);
+            await ETLProceso.finalizar(procesoId, 'ERROR', 0, 0, mensajeUpstream);
         }
 
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
         }
 
-        res.status(500).json({
-            error: error.message,
+        res.status(statusUpstream || 500).json({
+            error: mensajeUpstream,
             detalles: error.response?.data
         });
     }
@@ -197,11 +217,12 @@ const obtenerDetallesProceso = async (req, res) => {
         let estadisticas = {};
         let datos_grafico = [];
 
-        // Detectar tipo de datos
+        // El tipo se guarda desde ETLProceso.iniciar(); para procesos viejos
+        // (previos a esta columna) se usa el nombre de archivo como respaldo.
         const nombreArchivo = proceso.nombre_archivo.toLowerCase();
-        const esEncuesta = nombreArchivo.includes('encuesta') ||
-            nombreArchivo.includes('turismo') ||
-            nombreArchivo.includes('feriado');
+        const esEncuesta = proceso.tipo_datos
+            ? proceso.tipo_datos === 'encuestas'
+            : (nombreArchivo.includes('encuesta') || nombreArchivo.includes('turismo') || nombreArchivo.includes('feriado'));
 
         if (esEncuesta) {
             // ==========================================

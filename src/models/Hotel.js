@@ -16,6 +16,14 @@ const Hotel = sequelize.define('hotel', {
         type: DataTypes.STRING(200),
         allowNull: true
     },
+    telefono: {
+        type: DataTypes.STRING(50),
+        allowNull: true
+    },
+    parroquia: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
     categoria: {
         type: DataTypes.ENUM('1', '2', '3', '4', '5'),
         allowNull: false,
