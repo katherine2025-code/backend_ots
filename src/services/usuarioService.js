@@ -89,12 +89,26 @@ const obtenerBitacora = async (idUsuario) => {
     });
 };
 
-module.exports = { 
-    obtenerTodos, 
-    obtenerPorId, 
-    crear, 
-    actualizar, 
+// Vista de sistema completo, exclusiva de Super Administrador: acciones de
+// TODOS los usuarios, no solo las de uno (ver obtenerBitacora).
+const obtenerBitacoraCompleta = async (limite = 200) => {
+    return await Bitacora.findAll({
+        include: [{
+            model: Usuario,
+            attributes: ['id_usuario', 'nombres', 'apellidos', 'correo', 'id_rol']
+        }],
+        order: [['fecha', 'DESC']],
+        limit: limite
+    });
+};
+
+module.exports = {
+    obtenerTodos,
+    obtenerPorId,
+    crear,
+    actualizar,
     eliminar,
     cambiarPassword,
-    obtenerBitacora
+    obtenerBitacora,
+    obtenerBitacoraCompleta
 };

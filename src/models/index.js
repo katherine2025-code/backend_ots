@@ -22,6 +22,10 @@ const ValidacionPrediccion = require('./ValidacionPrediccion');
 Rol.hasMany(Usuario, { foreignKey: 'id_rol' });
 Usuario.belongsTo(Rol, { foreignKey: 'id_rol' });
 
+// Usuario - Bitacora
+Usuario.hasMany(Bitacora, { foreignKey: 'id_usuario' });
+Bitacora.belongsTo(Usuario, { foreignKey: 'id_usuario' });
+
 // Hotel - OcupacionHotelera
 Hotel.hasMany(OcupacionHotelera, { foreignKey: 'id_hotel' });
 OcupacionHotelera.belongsTo(Hotel, { foreignKey: 'id_hotel' });

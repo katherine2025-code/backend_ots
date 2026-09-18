@@ -14,7 +14,7 @@ router.get('/:id', prediccionController.obtenerPorId);
 router.post('/', prediccionController.crear);
 router.post('/predict', prediccionController.predecir);
 // Entrenar el modelo es una operación pesada y de administración: solo admin
-router.post('/entrenar', verificarRol([1]), prediccionController.entrenarModelo);
+router.post('/entrenar', verificarRol([0, 1]), prediccionController.entrenarModelo);
 router.put('/:id/validar', prediccionController.validar);
 router.put('/:id/descartar', prediccionController.descartar);
 

@@ -10,7 +10,7 @@ const upload = require('../middleware/uploadMiddleware');
 // ==========================================
 router.post('/procesar', 
     autenticar, 
-    verificarRol([1]),  // Solo admin (id_rol = 1)
+    verificarRol([0, 1]),  // Admin o Super Administrador
     upload.single('archivo'), // Debe coincidir con el 'name' del input en el frontend
     etlController.cargarArchivo
 );
