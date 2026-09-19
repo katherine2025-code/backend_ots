@@ -84,6 +84,11 @@ const startServer = async () => {
         await connectDB();
         console.log('✅ Base de datos conectada correctamente');
 
+        await require('./services/esquemaService').asegurarEsquema();
+        await require('./services/respuestaService').asegurarEsquema();
+        await require('./services/encuestaService').sembrarSiVacio();
+        await require('./services/encuestaService').actualizarCuestionarioHotel();
+
         app.listen(PORT, () => {
             console.log('\n=================================');
             console.log('🚀 Servidor iniciado exitosamente');

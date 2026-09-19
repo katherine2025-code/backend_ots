@@ -18,27 +18,6 @@ const validarPrediccion = (req, res, next) => {
     next();
 };
 
-const validarValidacionPrediccion = (req, res, next) => {
-    const { observaciones, ocupacion_real } = req.body;
-    const errores = [];
-
-    if (ocupacion_real !== undefined) {
-        if (typeof ocupacion_real !== 'number' || ocupacion_real < 0 || ocupacion_real > 100) {
-            errores.push('La ocupación real debe ser un número entre 0 y 100');
-        }
-    }
-
-    if (errores.length > 0) {
-        return res.status(400).json({ 
-            error: 'Errores de validación',
-            detalles: errores 
-        });
-    }
-
-    next();
-};
-
-module.exports = { 
-    validarPrediccion,
-    validarValidacionPrediccion
+module.exports = {
+    validarPrediccion
 };

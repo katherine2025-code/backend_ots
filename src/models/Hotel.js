@@ -24,6 +24,11 @@ const Hotel = sequelize.define('hotel', {
         type: DataTypes.STRING(100),
         allowNull: true
     },
+    canton: {
+        type: DataTypes.STRING(30),
+        allowNull: true,
+        comment: 'Santa Elena | Salinas (clasificación de hoteles por cantón)'
+    },
     categoria: {
         type: DataTypes.ENUM('1', '2', '3', '4', '5'),
         allowNull: false,
