@@ -11,5 +11,6 @@ router.get('/estadisticas', autenticar, dashboardController.obtenerEstadisticas)
 router.get('/metricas-modelo', autenticar, dashboardController.obtenerMetricasModelo);
 router.get('/ocupacion-temporada', autenticar, dashboardController.obtenerOcupacionPorTemporada);
 router.get('/ocupacion-parroquia', autenticar, dashboardController.obtenerOcupacionPorParroquia);
+router.get('/predicho-vs-real', autenticar, dashboardController.obtenerPredichoVsReal);
 
 module.exports = router;

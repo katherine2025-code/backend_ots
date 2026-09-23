@@ -31,8 +31,8 @@ Usuario.hasMany(Bitacora, { foreignKey: 'id_usuario' });
 Bitacora.belongsTo(Usuario, { foreignKey: 'id_usuario' });
 
 // Hotel - OcupacionHotelera
-Hotel.hasMany(OcupacionHotelera, { foreignKey: 'id_hotel' });
-OcupacionHotelera.belongsTo(Hotel, { foreignKey: 'id_hotel' });
+Hotel.hasMany(OcupacionHotelera, { foreignKey: 'id_hotel', as: 'ocupaciones' });
+OcupacionHotelera.belongsTo(Hotel, { foreignKey: 'id_hotel', as: 'hotel' });
 
 // Hotel - Prediccion
 Hotel.hasMany(Prediccion, { foreignKey: 'id_hotel' });

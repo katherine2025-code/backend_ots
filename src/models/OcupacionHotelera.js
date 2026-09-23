@@ -63,6 +63,13 @@ const OcupacionHotelera = sequelize.define('ocupacion_hotelera', {
         type: DataTypes.DECIMAL(5, 2),
         allowNull: true
     },
+    // Nombre del feriado al que corresponde el registro (Carnaval, Semana Santa, ...). Lo llena
+    // el ETL de la app cuando el encuestador reporta una jornada del cronograma; los registros
+    // cargados desde Kobo (el formulario original no preguntaba esto) quedan en null.
+    feriado: {
+        type: DataTypes.STRING(80),
+        allowNull: true
+    },
     tarifa_cobrada: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: true

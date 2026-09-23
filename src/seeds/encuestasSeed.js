@@ -66,8 +66,8 @@ const DEMANDA = 'Demanda Turística';
 const CANTONES = ['Santa Elena', 'Salinas'];
 const PARROQUIAS = ['Santa Elena', 'Atahualpa', 'Colonche', 'Chanduy', 'Manglaralto', 'Simón Bolívar', 'Ancón', 'Salinas', 'Anconcito', 'José Luis Tamayo'];
 
-// Feriados en los que se recolecta ocupación (el administrador puede agregar más desde la edición)
-const FERIADOS = ['Año Nuevo', 'Carnaval', 'Semana Santa', 'Día del Trabajo', 'Primer Grito de la Independencia', 'Día de los Difuntos', 'Navidad y Fin de Año'];
+// Feriados en los que se recolecta ocupación: lista única/canónica, ver utils/feriados.js
+const { NOMBRES_FERIADOS: FERIADOS } = require('../utils/feriados');
 
 // Un bloque por cada día del feriado (hasta 5). Solo la Fecha 1 es obligatoria: un feriado
 // puede durar de 1 a 5 días, y el encuestador deja en blanco los bloques que no usa.

@@ -88,6 +88,7 @@ const startServer = async () => {
         await require('./services/respuestaService').asegurarEsquema();
         await require('./services/encuestaService').sembrarSiVacio();
         await require('./services/encuestaService').actualizarCuestionarioHotel();
+        await require('./services/encuestaService').actualizarOpcionesFeriado();
 
         app.listen(PORT, () => {
             console.log('\n=================================');

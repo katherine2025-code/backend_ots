@@ -83,13 +83,23 @@ const obtenerOcupacionPorParroquia = async (req, res) => {
     }
 };
 
-module.exports = { 
-    obtenerKPIs, 
-    obtenerOcupacionPorHotel, 
-    obtenerTendencia, 
+const obtenerPredichoVsReal = async (req, res) => {
+    try {
+        const datos = await dashboardService.obtenerPredichoVsReal();
+        res.json(datos);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+module.exports = {
+    obtenerKPIs,
+    obtenerOcupacionPorHotel,
+    obtenerTendencia,
     obtenerPredicciones,
     obtenerEstadisticas,
     obtenerMetricasModelo,
     obtenerOcupacionPorTemporada,
-    obtenerOcupacionPorParroquia
+    obtenerOcupacionPorParroquia,
+    obtenerPredichoVsReal
 };

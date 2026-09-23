@@ -168,6 +168,27 @@ const encuestaService = {
         return true;
     },
 
+    // La pregunta "feriado" del cuestionario de hoteles debe ofrecer exactamente los 7 feriados
+    // del calendario oficial (utils/feriados.js) - mismos nombres que usa el filtro de Ocupación
+    // y la tabla `feriados`, para que un feriado elegido en el campo se pueda cruzar con el resto
+    // del sistema. Solo actualiza esa pregunta puntual (no toca las demás si el admin las editó).
+    async actualizarOpcionesFeriado() {
+        const { NOMBRES_FERIADOS } = require('../utils/feriados');
+        const pregunta = await EncuestaPregunta.findOne({
+            include: { model: Encuesta, attributes: [], where: { tipo: 'hotel' } },
+            where: { codigo: 'feriado' }
+        });
+        if (!pregunta) return false;
+
+        const actuales = JSON.stringify(pregunta.opciones || []);
+        const canonicas = JSON.stringify(NOMBRES_FERIADOS);
+        if (actuales === canonicas) return false;
+
+        await pregunta.update({ opciones: NOMBRES_FERIADOS });
+        console.log('Opciones de la pregunta "feriado" actualizadas al calendario oficial 2026');
+        return true;
+    },
+
     // Carga los cuestionarios iniciales si todavía no existen encuestas.
     async sembrarSiVacio() {
         if (await Encuesta.count() > 0) return false;

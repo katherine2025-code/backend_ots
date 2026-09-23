@@ -136,33 +136,61 @@ const obtenerMetricasModelo = async () => {
     }
 };
 
+// La ocupación no tiene una columna "temporada" propia (solo un id_temporada que no se usa en
+// ninguna carga real). La temporada real viene del feriado al que corresponde cada registro
+// (Alta/Media, según el calendario oficial - ver utils/feriados.js), con el mismo margen de
+// días que usa el filtro "por feriado" de Ocupación, para que ambas pantallas cuenten igual.
 const obtenerOcupacionPorTemporada = async () => {
-    const datos = await OcupacionHotelera.findAll({
-        attributes: [
-            'temporada',
-            [sequelize.fn('AVG', sequelize.col('ocupacion_porcentaje')), 'promedio'],
-            [sequelize.fn('COUNT', sequelize.col('id_ocupacion')), 'registros']
-        ],
-        group: ['temporada'],
-        order: [[sequelize.fn('AVG', sequelize.col('ocupacion_porcentaje')), 'DESC']],
-        raw: true
-    });
-
+    const { MARGEN_ANALISIS_DIAS } = require('../utils/feriados');
+    const datos = await sequelize.query(
+        `SELECT temporada, AVG(pct) AS promedio, COUNT(*) AS registros FROM (
+            SELECT o.ocupacion_porcentaje AS pct, (
+                SELECT f.temporada FROM feriados f
+                WHERE o.fecha BETWEEN DATE_SUB(f.fecha_inicio, INTERVAL ${MARGEN_ANALISIS_DIAS} DAY)
+                                   AND DATE_ADD(f.fecha_fin, INTERVAL ${MARGEN_ANALISIS_DIAS} DAY)
+                ORDER BY f.fecha_inicio LIMIT 1
+            ) AS temporada
+            FROM ocupacion_hotelera o
+            WHERE o.habitaciones_totales > 0
+         ) t
+         WHERE temporada IS NOT NULL
+         GROUP BY temporada
+         ORDER BY promedio DESC`,
+        { type: require('sequelize').QueryTypes.SELECT }
+    );
     return datos;
+};
+
+// Ocupación predicha vs. real por mes, SOLO para predicciones ya validadas (con ocupacion_real
+// cargada) - una predicción sin validar no tiene con qué compararse todavía. Si no hay ninguna
+// validada, el arreglo queda vacío: el frontend lo muestra como "aún no hay predicciones
+// validadas" en vez de dibujar un dato inventado.
+const obtenerPredichoVsReal = async () => {
+    const datos = await sequelize.query(
+        // `real` es palabra reservada en MySQL (sinónimo histórico de DOUBLE) - va entre backticks.
+        `SELECT DATE_FORMAT(fecha, '%Y-%m') AS mes,
+                AVG(ocupacion_predicha) AS predicho, AVG(ocupacion_real) AS \`real\`
+         FROM predicciones
+         WHERE ocupacion_real IS NOT NULL
+         GROUP BY mes ORDER BY mes`,
+        { type: require('sequelize').QueryTypes.SELECT }
+    );
+    return datos.map(d => ({ mes: d.mes, predicho: parseFloat(d.predicho), real: parseFloat(d.real) }));
 };
 
 const obtenerOcupacionPorParroquia = async () => {
     const datos = await OcupacionHotelera.findAll({
         include: [{
             model: Hotel,
+            as: 'hotel',
             attributes: ['parroquia']
         }],
         attributes: [
-            [sequelize.col('Hotel.parroquia'), 'parroquia'],
+            [sequelize.col('hotel.parroquia'), 'parroquia'],
             [sequelize.fn('AVG', sequelize.col('ocupacion_porcentaje')), 'promedio'],
             [sequelize.fn('COUNT', sequelize.col('id_ocupacion')), 'registros']
         ],
-        group: ['Hotel.parroquia'],
+        group: ['hotel.parroquia'],
         order: [[sequelize.fn('AVG', sequelize.col('ocupacion_porcentaje')), 'DESC']],
         raw: true
     });
@@ -178,5 +206,6 @@ module.exports = {
     obtenerEstadisticasDashboard,
     obtenerMetricasModelo,
     obtenerOcupacionPorTemporada,
-    obtenerOcupacionPorParroquia
+    obtenerOcupacionPorParroquia,
+    obtenerPredichoVsReal
 };
