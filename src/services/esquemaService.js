@@ -41,6 +41,11 @@ const esquemaService = {
         await agregarColumna('encuestas_turisticas', 'uuid_kobo', 'VARCHAR(64) NULL UNIQUE');
         await this.recuperarUuidHistorico();
 
+        // Cuántos de los días del formulario (Fecha 1..5) reportó el hotel en ese envío. Con él, el
+        // % de ocupación se calcula como habitaciones ocupadas / (capacidad x días reportados), que es
+        // la fórmula MINTUR aplicada al período. NULL = registro anterior a esta columna, sin recalcular.
+        await agregarColumna('ocupacion_hotelera', 'dias_reportados', 'INT NULL');
+
         // Nuevo tipo de pregunta "date" (fecha) en los cuestionarios
         const [col] = await sequelize.query(
             `SELECT COLUMN_TYPE AS t FROM information_schema.COLUMNS
