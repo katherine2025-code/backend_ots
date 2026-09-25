@@ -64,6 +64,22 @@ const esquemaService = {
         await this.corregirOcupacionHistorica();
         await this.recuperarCapacidadSalinasAgosto2026();
         await this.cargarFeriadosOficiales2026();
+        await this.agregarProphetAModeloEnum();
+    },
+
+    // El tercer modelo de Machine Learning (Prophet) se suma a Random Forest y XGBoost.
+    async agregarProphetAModeloEnum() {
+        const [col] = await sequelize.query(
+            `SELECT COLUMN_TYPE AS t FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'predicciones' AND COLUMN_NAME = 'modelo_utilizado'`,
+            { type: QueryTypes.SELECT }
+        );
+        if (col && !col.t.includes("'Prophet'")) {
+            await sequelize.query(
+                `ALTER TABLE predicciones MODIFY modelo_utilizado ENUM('RandomForest','XGBoost','Prophet') NOT NULL`
+            );
+            console.log("predicciones.modelo_utilizado ahora admite 'Prophet'");
+        }
     },
 
     // Calendario oficial 2026 (ver utils/feriados.js, con la fuente citada). Solo se carga si la

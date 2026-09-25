@@ -46,7 +46,7 @@ const Prediccion = sequelize.define('prediccion', {
         defaultValue: true
     },
     modelo_utilizado: {
-        type: DataTypes.ENUM('RandomForest', 'XGBoost'),
+        type: DataTypes.ENUM('RandomForest', 'XGBoost', 'Prophet'),
         allowNull: false
     },
     version_modelo: {

@@ -12,9 +12,12 @@ router.get('/', prediccionController.obtenerTodas);
 router.get('/metricas', prediccionController.obtenerMetricas);
 router.get('/:id', prediccionController.obtenerPorId);
 router.post('/', prediccionController.crear);
-router.post('/predict', prediccionController.predecir);
-// Entrenar el modelo es una operación pesada y de administración: solo admin
-router.post('/entrenar', verificarRol([0, 1]), prediccionController.entrenarModelo);
+// Generar una predicción (simulador / proyección por rango): Super Administrador e
+// Investigador. El Administrador solo ve y valida/descarta resultados ya generados.
+router.post('/predict', verificarRol([0, 2]), prediccionController.predecir);
+router.post('/predecir-rango', verificarRol([0, 2]), prediccionController.predecirRango);
+// Entrenar el modelo es una operación pesada y de administración: solo Super Administrador
+router.post('/entrenar', verificarRol([0]), prediccionController.entrenarModelo);
 router.put('/:id/validar', prediccionController.validar);
 router.put('/:id/descartar', prediccionController.descartar);
 

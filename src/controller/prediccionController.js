@@ -123,6 +123,22 @@ const predecir = async (req, res) => {
     }
 };
 
+// Proyección por rango de fechas conectando con microservicio ML
+const predecirRango = async (req, res) => {
+    try {
+        const response = await axios.post(`${ML_URL}/predecir-rango`, req.body);
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error al generar proyección por rango:', error.message);
+        const status = error.response ? error.response.status : 500;
+        const detalles = error.response?.data || error.message;
+        res.status(status).json({
+            error: 'Error al conectar con el servicio de predicción ML',
+            detalles
+        });
+    }
+};
+
 // Entrenar modelo conectando con microservicio ML
 const entrenarModelo = async (req, res) => {
     try {
@@ -177,6 +193,7 @@ module.exports = {
     obtenerTodas,
     obtenerMetricas,
     obtenerPorId,
+    predecirRango,
     crear,
     predecir,
     entrenarModelo,
