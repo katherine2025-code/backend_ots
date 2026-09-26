@@ -4,13 +4,13 @@ FROM node:20-slim
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY package*.json ./
+COPY --chown=node:node package*.json ./
 RUN npm ci --omit=dev
+COPY --chown=node:node . .
 
-COPY . .
-
-# Usuario sin privilegios (ya viene creado en la imagen oficial de Node)
-RUN chown -R node:node /app
+# Usuario sin privilegios (ya viene creado en la imagen oficial de Node). Se asigna el dueño
+# directo en los COPY de arriba en vez de un "RUN chown -R" aparte al final: recorrer todo /app
+# archivo por archivo después de copiado tardaba ~30s de más en cada build.
 USER node
 
 EXPOSE 3000
