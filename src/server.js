@@ -9,6 +9,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // CORS
+// FRONTEND_URL (.env): el dominio real del front ya desplegado (ej. el que da Dokploy). Sin
+// esto, el navegador bloquea las llamadas del front en producción porque su origen no está en
+// esta lista - los localhost de abajo solo sirven para desarrollo en esta misma máquina.
+const origenesProduccion = [process.env.FRONTEND_URL].filter(Boolean);
 const corsOptions = {
     origin: [
         'http://localhost:8100',
@@ -16,6 +20,7 @@ const corsOptions = {
         'http://localhost:3000',
         'http://127.0.0.1:8100',
         'http://127.0.0.1:8101',
+        ...origenesProduccion
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
