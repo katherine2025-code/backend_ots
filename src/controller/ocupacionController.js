@@ -59,6 +59,7 @@ const obtenerTodas = async (req, res) => {
             habitaciones_ocupadas: f.habitaciones_ocupadas,
             habitaciones_disponibles: f.habitaciones_disponibles,
             habitaciones_totales: f.habitaciones_totales,
+            dias_reportados: f.dias_reportados,
             ocupacion_porcentaje: f.ocupacion_porcentaje,
             tarifa_cobrada: f.tarifa_cobrada,
             fuente_dato: f.fuente_dato,

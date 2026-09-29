@@ -63,6 +63,7 @@ const esquemaService = {
         await this.clasificarHotelesPorCanton();
         await this.corregirOcupacionHistorica();
         await this.recuperarCapacidadSalinasAgosto2026();
+        await this.recuperarTuristasKobo();
         await this.cargarFeriadosOficiales2026();
         await this.agregarProphetAModeloEnum();
     },
@@ -168,6 +169,47 @@ const esquemaService = {
         }
         if (aplicados > 0) {
             console.log(`Capacidad recuperada para ${aplicados} registro(s) de ocupación (Salinas, agosto 2026)`);
+        }
+    },
+
+    // Las cargas de Kobo guardaban como "turistas" las casillas de selección múltiple del
+    // formulario ('Pregunta de turistas /Nacionales' y '/Extranjeros': 1 = sí recibió, 0 = no),
+    // no las cantidades - por eso la tabla mostraba siempre 1 o 2. Las cantidades reales (turistas
+    // por cada día del feriado) se recuperaron releyendo los dos archivos originales (febrero y
+    // agosto/2026, 114 envíos) con el ETL ya corregido, cruzando por uuid_kobo; son totales del
+    // período, igual que habitaciones_ocupadas. Ver seeds/recuperacionTuristasKobo.json.
+    //  - Solo toca filas que sigan con el valor de casilla (0/1), para no pisar nada corregido.
+    //  - Los 31 envíos de Salinas (id 483-513) vienen de un archivo que no está disponible: sus
+    //    turistas quedan en NULL ("sin dato") en vez de mostrar un 1 que no es una cantidad.
+    //  - 3 filas sin capacidad registrada tampoco tenían dias_reportados; el archivo confirma 4.
+    async recuperarTuristasKobo() {
+        const datos = require('../seeds/recuperacionTuristasKobo.json');
+        let aplicados = 0;
+        for (const { id_ocupacion, nacionales, extranjeros, dias } of datos) {
+            const [, meta] = await sequelize.query(
+                `UPDATE ocupacion_hotelera
+                 SET checkin_nacionales = :nac, checkin_extranjeros = :ext, total_turistas = :nac + :ext
+                 WHERE id_ocupacion = :id AND checkin_nacionales <= 1 AND checkin_extranjeros <= 1
+                   AND (checkin_nacionales <> :nac OR checkin_extranjeros <> :ext)`,
+                { replacements: { id: id_ocupacion, nac: nacionales, ext: extranjeros } }
+            );
+            aplicados += meta?.affectedRows ?? meta ?? 0;
+            if (dias) {
+                await sequelize.query(
+                    `UPDATE ocupacion_hotelera SET dias_reportados = :dias
+                     WHERE id_ocupacion = :id AND dias_reportados IS NULL`,
+                    { replacements: { id: id_ocupacion, dias } }
+                );
+            }
+        }
+        const [, metaSalinas] = await sequelize.query(
+            `UPDATE ocupacion_hotelera
+             SET checkin_nacionales = NULL, checkin_extranjeros = NULL, total_turistas = NULL
+             WHERE id_ocupacion BETWEEN 483 AND 513 AND checkin_nacionales <= 1 AND checkin_extranjeros <= 1`
+        );
+        aplicados += metaSalinas?.affectedRows ?? metaSalinas ?? 0;
+        if (aplicados > 0) {
+            console.log(`Turistas de cargas Kobo corregidos en ${aplicados} registro(s)`);
         }
     },
 
