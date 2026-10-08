@@ -24,8 +24,7 @@ const login = async (req, res) => {
 
 const registro = async (req, res) => {
         console.log(' [REGISTRO] Inicio del proceso de registro');
-        console.log('[REGISTRO] Datos recibidos en req.body:', req.body);
-        
+
         try {
             const { nombres, apellidos, correo, password, id_rol } = req.body;
             
@@ -149,4 +148,50 @@ const cambiarPassword = async (req, res) => {
     }
 };
 
-module.exports = { login, registro, perfil, cambiarPassword };
+// ==========================================
+// OLVIDÉ MI CONTRASEÑA (solicita el enlace)
+// ==========================================
+const olvidePassword = async (req, res) => {
+    try {
+        const { correo } = req.body;
+        if (!correo) {
+            return res.status(400).json({ error: 'El correo es requerido' });
+        }
+
+        const { estado, usuarioId } = await authService.solicitarReset(correo);
+
+        if (estado === 'no_existe') {
+            return res.status(404).json({ error: 'No existe una cuenta registrada con ese correo.' });
+        }
+        if (estado === 'inactivo') {
+            return res.status(403).json({ error: 'La cuenta está desactivada. Contacta al administrador.' });
+        }
+
+        // estado === 'enviado': se mandó el correo. Queda registrado en bitácora.
+        await authService.registrarBitacora(usuarioId, 'SOLICITUD_RESET', 'auth', req.ip);
+
+        res.json({
+            mensaje: 'Te enviamos un enlace a tu correo para restablecer tu contraseña. Es válido por 1 hora.'
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ==========================================
+// RESETEAR CONTRASEÑA (con el token del correo)
+// ==========================================
+const resetearPassword = async (req, res) => {
+    try {
+        const { token, password } = req.body;
+        const { usuarioId } = await authService.resetearPassword(token, password);
+
+        await authService.registrarBitacora(usuarioId, 'RESET_PASSWORD', 'auth', req.ip);
+
+        res.json({ mensaje: 'Contraseña restablecida correctamente. Ya puedes iniciar sesión.' });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+module.exports = { login, registro, perfil, cambiarPassword, olvidePassword, resetearPassword };

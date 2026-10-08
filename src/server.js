@@ -9,19 +9,39 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // CORS
-// FRONTEND_URL (.env): el dominio real del front ya desplegado (ej. el que da Dokploy). Sin
-// esto, el navegador bloquea las llamadas del front en producción porque su origen no está en
-// esta lista - los localhost de abajo solo sirven para desarrollo en esta misma máquina.
-const origenesProduccion = [process.env.FRONTEND_URL].filter(Boolean);
+// FRONTEND_URL (.env): el/los dominio(s) real(es) del front ya desplegado. Admite VARIOS
+// orígenes separados por coma, ej:
+//   FRONTEND_URL=https://ots.serverteced.cloud,https://www.ots.serverteced.cloud
+// Sin esto, el navegador bloquea las llamadas del front en producción porque su origen no
+// está en la lista - los localhost de abajo solo sirven para desarrollo en esta máquina.
+const normalizarOrigen = (u) => (u || '').trim().replace(/\/+$/, '');
+
+const origenesPermitidos = [
+    // Desarrollo local (web + Ionic serve)
+    'http://localhost:8100',
+    'http://localhost:8101',
+    'http://localhost:3000',
+    'http://127.0.0.1:8100',
+    'http://127.0.0.1:8101',
+    // App nativa (Capacitor/Ionic en Android)
+    'http://localhost',
+    'https://localhost',
+    'capacitor://localhost',
+    'ionic://localhost',
+    // Producción (desde FRONTEND_URL, uno o varios)
+    ...String(process.env.FRONTEND_URL || '').split(',')
+].map(normalizarOrigen).filter(Boolean);
+
 const corsOptions = {
-    origin: [
-        'http://localhost:8100',
-        'http://localhost:8101',
-        'http://localhost:3000',
-        'http://127.0.0.1:8100',
-        'http://127.0.0.1:8101',
-        ...origenesProduccion
-    ],
+    origin: (origin, callback) => {
+        // Peticiones sin Origin (curl, health checks, algunas apps nativas): permitir.
+        if (!origin) return callback(null, true);
+        if (origenesPermitidos.includes(normalizarOrigen(origin))) {
+            return callback(null, true);
+        }
+        console.warn(`[CORS] Origen bloqueado: ${origin}. Permitidos: ${origenesPermitidos.join(', ')}`);
+        return callback(null, false);
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
     credentials: true,

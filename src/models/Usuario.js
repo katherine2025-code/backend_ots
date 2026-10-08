@@ -42,6 +42,16 @@ const Usuario = sequelize.define('usuario', {
         type: DataTypes.DATE,
         allowNull: true,
         defaultValue: DataTypes.NOW
+    },
+    // Recuperación de contraseña: se guarda el HASH (sha256) del token enviado por correo,
+    // no el token en claro, y su expiración. Ver authService.solicitarReset/resetearPassword.
+    reset_token: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+    },
+    reset_expira: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
     tableName: 'usuarios',

@@ -1,7 +1,21 @@
+const crypto = require('crypto');
+const { Op } = require('sequelize');
 const Usuario = require('../models/Usuario');
 const Bitacora = require('../models/Bitacora');
 const bcrypt = require('bcryptjs');
 const { generateToken } = require('../config/jwt');
+const mailService = require('./mailService');
+
+// Primer origen de FRONTEND_URL (puede traer varios separados por coma). Se usa para armar el
+// enlace del correo de recuperación. En desarrollo cae a localhost si no está configurado.
+const urlDelFront = () => {
+    const primero = String(process.env.FRONTEND_URL || '').split(',')[0].trim();
+    return (primero || 'http://localhost:8100').replace(/\/+$/, '');
+};
+
+// El token viaja en claro al correo del usuario, pero en la BD se guarda solo su hash sha256.
+// Así, aunque se filtrara la tabla, nadie puede reconstruir el enlace válido.
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 // ==========================================
 // MÉTODO LOGIN
@@ -9,7 +23,6 @@ const { generateToken } = require('../config/jwt');
 const login = async (correo, password) => {
     console.log('\n========================================');
     console.log('[SERVICE] Iniciando login para:', correo);
-    console.log('[SERVICE] Contraseña recibida:', password);
 
     try {
         // Buscar usuario
@@ -140,6 +153,70 @@ const registrarBitacora = async (idUsuario, accion, modulo, ip) => {
 };
 
 // ==========================================
+// MÉTODO SOLICITAR RESET (¿olvidaste tu contraseña?)
+// ==========================================
+// Devuelve un 'estado' explícito para que el usuario reciba feedback real:
+//   'no_existe' -> ese correo no está registrado
+//   'inactivo'  -> la cuenta existe pero está desactivada
+//   'enviado'   -> se generó el token y se envió el correo con el enlace
+const solicitarReset = async (correo) => {
+    const usuario = await Usuario.findOne({ where: { correo } });
+
+    if (!usuario) {
+        return { estado: 'no_existe', usuarioId: null };
+    }
+    if (usuario.estado !== 1) {
+        return { estado: 'inactivo', usuarioId: usuario.id_usuario };
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expira = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+
+    await usuario.update({
+        reset_token: hashToken(token),
+        reset_expira: expira
+    });
+
+    const enlace = `${urlDelFront()}/reset-password?token=${token}`;
+    await mailService.enviarCorreoReset(usuario.correo, usuario.nombres, enlace);
+
+    return { estado: 'enviado', usuarioId: usuario.id_usuario };
+};
+
+// ==========================================
+// MÉTODO RESETEAR PASSWORD (con el token del correo)
+// ==========================================
+const resetearPassword = async (token, passwordNueva) => {
+    if (!token || !passwordNueva) {
+        throw new Error('Token y nueva contraseña son requeridos');
+    }
+    if (passwordNueva.length < 6) {
+        throw new Error('La nueva contraseña debe tener al menos 6 caracteres');
+    }
+
+    const usuario = await Usuario.findOne({
+        where: {
+            reset_token: hashToken(token),
+            reset_expira: { [Op.gt]: new Date() } // aún no expirado
+        }
+    });
+
+    if (!usuario) {
+        throw new Error('El enlace no es válido o ha expirado. Solicítalo de nuevo.');
+    }
+
+    const passwordHash = await bcrypt.hash(passwordNueva, 10);
+    // Un solo uso: se limpia el token para que el mismo enlace no sirva dos veces.
+    await usuario.update({
+        password_hash: passwordHash,
+        reset_token: null,
+        reset_expira: null
+    });
+
+    return { usuarioId: usuario.id_usuario };
+};
+
+// ==========================================
 // MÉTODO CAMBIAR PASSWORD
 // ==========================================
 const cambiarPassword = async (userId, passwordActual, passwordNueva) => {
@@ -167,5 +244,7 @@ module.exports = {
     login,
     registrar,
     registrarBitacora,
-    cambiarPassword
+    cambiarPassword,
+    solicitarReset,
+    resetearPassword
 };

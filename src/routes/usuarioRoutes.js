@@ -5,8 +5,9 @@ const { autenticar } = require('../middleware/authMiddleware');
 const { verificarRol } = require('../middleware/roleMiddleware');
 const { validarCrearUsuario, validarActualizarUsuario } = require('../validators/usuarioValidator');
 
-// Lectura y cambio de la propia contraseña: cualquier usuario autenticado
-router.get('/', autenticar, usuarioController.obtenerTodos);
+// Listado completo de usuarios: solo Super Administrador o Administrador.
+// Un investigador/encuestador no debe poder enumerar las cuentas del sistema.
+router.get('/', autenticar, verificarRol([0, 1]), usuarioController.obtenerTodos);
 router.get('/perfil/mi-perfil', autenticar, usuarioController.obtenerPerfil);
 // Bitácora completa (todos los usuarios): exclusiva de Super Administrador.
 // Debe ir ANTES de '/:id/bitacora' para no ser interceptada por esa ruta.

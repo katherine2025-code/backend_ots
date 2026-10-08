@@ -23,6 +23,11 @@ const agregarColumna = async (tabla, columna, definicion) => {
 
 const esquemaService = {
     async asegurarEsquema() {
+        // Recuperación de contraseña ("¿Olvidaste tu contraseña?"): se guarda el HASH del token
+        // (nunca el token en claro) y su fecha de expiración. Al usarse o expirar, ambos vuelven a NULL.
+        await agregarColumna('usuarios', 'reset_token', 'VARCHAR(255) NULL');
+        await agregarColumna('usuarios', 'reset_expira', 'DATETIME NULL');
+
         // Clasificación de hoteles por cantón (Santa Elena / Salinas)
         await agregarColumna('hoteles', 'canton', 'VARCHAR(30) NULL');
 

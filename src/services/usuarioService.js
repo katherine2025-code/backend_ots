@@ -4,13 +4,19 @@ const Bitacora = require('../models/Bitacora');
 
 const obtenerTodos = async () => {
     return await Usuario.findAll({
-        attributes: { exclude: ['password_hash'] }
+        attributes: { exclude: ['password_hash', 'reset_token', 'reset_expira'] }
     });
+};
+
+// Cuenta los Super Administradores (id_rol 0) que están activos (estado 1).
+// Sirve para impedir que el sistema quede sin ningún super_admin con control total.
+const contarSuperAdminsActivos = async () => {
+    return await Usuario.count({ where: { id_rol: 0, estado: 1 } });
 };
 
 const obtenerPorId = async (id) => {
     const usuario = await Usuario.findByPk(id, {
-        attributes: { exclude: ['password_hash'] }
+        attributes: { exclude: ['password_hash', 'reset_token', 'reset_expira'] }
     });
     if (!usuario) {
         throw new Error('Usuario no encontrado');
@@ -110,5 +116,6 @@ module.exports = {
     eliminar,
     cambiarPassword,
     obtenerBitacora,
-    obtenerBitacoraCompleta
+    obtenerBitacoraCompleta,
+    contarSuperAdminsActivos
 };

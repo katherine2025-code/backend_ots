@@ -25,6 +25,7 @@
     "multer": "^2.2.0",
     "multer-s3": "^3.0.1",
     "mysql2": "^3.22.5",
+    "nodemailer": "^10.0.16",
     "sequelize": "^6.37.8",
     "winston": "^3.19.0"
   },
