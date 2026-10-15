@@ -51,6 +51,39 @@ const esquemaService = {
         // la fórmula MINTUR aplicada al período. NULL = registro anterior a esta columna, sin recalcular.
         await agregarColumna('ocupacion_hotelera', 'dias_reportados', 'INT NULL');
 
+        // Columnas del cuestionario ajustado (11-09-2026): las 23 preguntas que antes no tenían
+        // columna propia (gasto por rubro, actividades, satisfacción por aspecto, rubro de mayor
+        // gasto, multiselect). Las llena el ETL (Kobo y CSV de la app). Se agregan aquí para que al
+        // desplegar baste con reiniciar el backend; el ETL y los reportes solo las usan si existen.
+        const COLUMNAS_ENCUESTA_AJUSTADA = {
+            con_quien_viaja: 'VARCHAR(100) NULL',
+            actividades_esperadas: 'VARCHAR(255) NULL',
+            busco_informacion: 'VARCHAR(300) NULL',
+            facilidad_informacion: 'VARCHAR(60) NULL',
+            como_organizo: 'VARCHAR(120) NULL',
+            anticipacion: 'VARCHAR(40) NULL',
+            transporte_llegada: 'VARCHAR(80) NULL',
+            transporte_destino: 'VARCHAR(255) NULL',
+            gasto_alojamiento: 'DECIMAL(7,2) NULL',
+            gasto_alimentacion: 'DECIMAL(7,2) NULL',
+            gasto_transporte: 'DECIMAL(7,2) NULL',
+            gasto_entretenimiento: 'DECIMAL(7,2) NULL',
+            gasto_compras: 'DECIMAL(7,2) NULL',
+            gasto_recuerdos: 'DECIMAL(7,2) NULL',
+            rubro_mayor_gasto: 'VARCHAR(60) NULL',
+            tipo_viajero: 'VARCHAR(40) NULL',
+            expectativas: 'VARCHAR(60) NULL',
+            satisfaccion_informacion: 'TINYINT NULL',
+            satisfaccion_atencion: 'TINYINT NULL',
+            satisfaccion_seguridad: 'TINYINT NULL',
+            satisfaccion_limpieza: 'TINYINT NULL',
+            satisfaccion_calidad_precio: 'TINYINT NULL',
+            motivos_recomendacion: 'VARCHAR(500) NULL'
+        };
+        for (const [columna, definicion] of Object.entries(COLUMNAS_ENCUESTA_AJUSTADA)) {
+            await agregarColumna('encuestas_turisticas', columna, definicion);
+        }
+
         // Nuevo tipo de pregunta "date" (fecha) en los cuestionarios
         const [col] = await sequelize.query(
             `SELECT COLUMN_TYPE AS t FROM information_schema.COLUMNS

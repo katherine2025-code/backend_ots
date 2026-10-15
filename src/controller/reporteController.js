@@ -104,6 +104,30 @@ const obtenerEstadisticas = async (req, res) => {
             gastoPorFeriado.push({ feriado: nombre, gasto_promedio: fila.gasto_promedio, total: fila.total });
         }
 
+        // Gasto promedio por rubro (P19 del cuestionario): desglose del gasto diario por persona.
+        // Solo promedia filas con dato (> 0); un 0 real "sin gasto en este concepto" no se excluye
+        // porque sí es una respuesta, pero las filas sin ningún rubro (datos viejos no reprocesados)
+        // tienen NULL y no entran. Respeta el filtro actual (feriado/fechas/año).
+        const [[rubros]] = await sequelize.query(`
+            SELECT
+                AVG(gasto_alojamiento)    AS alojamiento,
+                AVG(gasto_alimentacion)   AS alimentacion,
+                AVG(gasto_transporte)     AS transporte,
+                AVG(gasto_entretenimiento) AS entretenimiento,
+                AVG(gasto_compras)        AS compras,
+                AVG(gasto_recuerdos)      AS recuerdos
+            FROM encuestas_turisticas
+            WHERE gasto_alojamiento IS NOT NULL ${encuestasFiltro.sql}
+        `, { replacements: encuestasFiltro.replacements });
+        const gastoPorRubro = [
+            { rubro: 'Alojamiento', promedio: rubros.alojamiento },
+            { rubro: 'Alimentación', promedio: rubros.alimentacion },
+            { rubro: 'Transporte interno', promedio: rubros.transporte },
+            { rubro: 'Entretenimiento', promedio: rubros.entretenimiento },
+            { rubro: 'Compras', promedio: rubros.compras },
+            { rubro: 'Recuerdos', promedio: rubros.recuerdos }
+        ].map(r => ({ rubro: r.rubro, promedio: r.promedio !== null ? Number(r.promedio) : null }));
+
         res.json({
             filtros,
             encuestas: {
@@ -120,7 +144,8 @@ const obtenerEstadisticas = async (req, res) => {
                 tarifa_promedio: ocupacion.tarifa_promedio !== null ? Number(ocupacion.tarifa_promedio) : null
             },
             paises: paisesRows.map(r => ({ pais: r.pais, total: Number(r.total) })),
-            gastoPorFeriado
+            gastoPorFeriado,
+            gastoPorRubro
         });
     } catch (error) {
         console.error('Error al obtener estadísticas de reportes:', error);
@@ -161,7 +186,13 @@ const esTextoSucio = v => v === null || v === undefined || v === ''
     // también empiezan con un dígito pero son categorías reales, no deben caer aquí.
     || /^-?\d+(\.\d+)?$/.test(String(v).trim());
 
+// Las escalas 1-5 (satisfacción por aspecto) comparten el mismo "orden" para que siempre se
+// muestren 1→5 aunque falte alguna opción.
+const ORDEN_1_5 = ['1', '2', '3', '4', '5'];
+const esDefaultEscala = v => !v || v === 0;
+
 const PREGUNTAS_TABULABLES = [
+    // ===== Sección A: Perfil Sociodemográfico =====
     {
         seccion: 'Perfil Sociodemográfico', columna: 'edad', titulo: 'Edad de los encuestados',
         esDefault: v => !v || v === 0,
@@ -189,6 +220,7 @@ const PREGUNTAS_TABULABLES = [
         seccion: 'Perfil Sociodemográfico', columna: 'tamano_grupo', titulo: 'Personas en el grupo de viaje',
         esDefault: v => !v || v === 0
     },
+    // ===== Sección B: Planeación del Viaje =====
     {
         seccion: 'Planeación del Viaje', columna: 'motivo_visita', titulo: 'Motivo principal de la visita',
         esDefault: esTextoSucio
@@ -198,16 +230,86 @@ const PREGUNTAS_TABULABLES = [
         esDefault: esTextoSucio
     },
     {
+        seccion: 'Planeación del Viaje', columna: 'con_quien_viaja', titulo: '¿Con quién viaja?',
+        esDefault: esTextoSucio
+    },
+    {
+        seccion: 'Planeación del Viaje', columna: 'actividades_esperadas', titulo: 'Actividades que espera realizar (opción múltiple)',
+        multiple: true, limite: 12
+    },
+    {
         seccion: 'Planeación del Viaje', columna: 'noches_estadia', titulo: 'Noches de hospedaje',
         esDefault: v => v === null || v === undefined || v === 0
     },
     {
-        seccion: 'Satisfacción', columna: 'nivel_satisfaccion', titulo: 'Satisfacción general (escala 1-5)',
-        esDefault: v => !v || v === 0
+        seccion: 'Planeación del Viaje', columna: 'busco_informacion', titulo: 'Medios por los que buscó información (opción múltiple)',
+        multiple: true, limite: 12
+    },
+    {
+        seccion: 'Planeación del Viaje', columna: 'facilidad_informacion', titulo: '¿Qué tan fácil fue encontrar información del destino?',
+        esDefault: esTextoSucio
+    },
+    {
+        seccion: 'Planeación del Viaje', columna: 'como_organizo', titulo: '¿Cómo organizó su viaje?',
+        esDefault: esTextoSucio
+    },
+    {
+        seccion: 'Planeación del Viaje', columna: 'anticipacion', titulo: '¿Con cuánta anticipación organizó el viaje?',
+        esDefault: esTextoSucio
+    },
+    // ===== Sección C: Estructura de Consumo =====
+    {
+        seccion: 'Estructura de Consumo', columna: 'transporte_llegada', titulo: 'Medio de transporte para llegar al destino',
+        esDefault: esTextoSucio
+    },
+    {
+        seccion: 'Estructura de Consumo', columna: 'transporte_destino', titulo: 'Medios de traslado en el destino (opción múltiple)',
+        multiple: true, limite: 12
+    },
+    {
+        seccion: 'Estructura de Consumo', columna: 'rubro_mayor_gasto', titulo: 'Rubro en el que está dispuesto a gastar más',
+        esDefault: esTextoSucio
+    },
+    {
+        seccion: 'Estructura de Consumo', columna: 'tipo_viajero', titulo: 'Tipo de viajero según presupuesto',
+        esDefault: esTextoSucio
+    },
+    // ===== Sección D: Satisfacción =====
+    {
+        seccion: 'Satisfacción', columna: 'nivel_satisfaccion', titulo: 'Satisfacción general con los atractivos (escala 1-5)',
+        esDefault: esDefaultEscala, orden: ORDEN_1_5
+    },
+    {
+        seccion: 'Satisfacción', columna: 'expectativas', titulo: 'Expectativas vs. realidad experimentada',
+        esDefault: esTextoSucio
+    },
+    {
+        seccion: 'Satisfacción', columna: 'satisfaccion_informacion', titulo: 'Información turística disponible (escala 1-5)',
+        esDefault: esDefaultEscala, orden: ORDEN_1_5
+    },
+    {
+        seccion: 'Satisfacción', columna: 'satisfaccion_atencion', titulo: 'Atención y amabilidad de la población local (escala 1-5)',
+        esDefault: esDefaultEscala, orden: ORDEN_1_5
+    },
+    {
+        seccion: 'Satisfacción', columna: 'satisfaccion_seguridad', titulo: 'Seguridad percibida durante la estancia (escala 1-5)',
+        esDefault: esDefaultEscala, orden: ORDEN_1_5
+    },
+    {
+        seccion: 'Satisfacción', columna: 'satisfaccion_limpieza', titulo: 'Limpieza y mantenimiento del entorno (escala 1-5)',
+        esDefault: esDefaultEscala, orden: ORDEN_1_5
+    },
+    {
+        seccion: 'Satisfacción', columna: 'satisfaccion_calidad_precio', titulo: 'Relación calidad-precio de los servicios (escala 1-5)',
+        esDefault: esDefaultEscala, orden: ORDEN_1_5
     },
     {
         seccion: 'Satisfacción', columna: 'probabilidad_retorno', titulo: 'Probabilidad de recomendar/volver (escala 1-5)',
-        esDefault: v => !v || v === 0
+        esDefault: esDefaultEscala, orden: ORDEN_1_5
+    },
+    {
+        seccion: 'Satisfacción', columna: 'motivos_recomendacion', titulo: 'Motivos por los que recomendaría el destino (opción múltiple)',
+        multiple: true, limite: 12
     }
 ];
 
@@ -233,6 +335,35 @@ const obtenerTabulacion = async (req, res) => {
 
         const preguntas = [];
         for (const p of PREGUNTAS_TABULABLES) {
+            // Selección múltiple: una respuesta trae varias opciones separadas por "; " (ver ETL).
+            // Se cuenta cada opción por separado y el % es sobre los ENCUESTADOS que respondieron
+            // (no sobre el total de marcas), por eso la suma de % puede pasar de 100.
+            if (p.multiple) {
+                const [filas] = await sequelize.query(
+                    `SELECT ${p.columna} AS valor FROM encuestas_turisticas
+                     WHERE 1=1 ${filtro.sql} AND ${p.columna} IS NOT NULL AND ${p.columna} <> 'Prefiero no responder'`,
+                    { replacements: filtro.replacements }
+                );
+                const conteos = {};
+                let respondentes = 0;
+                for (const fila of filas) {
+                    const ops = String(fila.valor).split(';').map(s => s.trim()).filter(Boolean);
+                    if (ops.length) respondentes++;
+                    for (const o of ops) conteos[o] = (conteos[o] || 0) + 1;
+                }
+                let opciones = Object.entries(conteos).map(([etiqueta, total]) => ({
+                    etiqueta, total,
+                    porcentaje: respondentes ? Math.round((total / respondentes) * 1000) / 10 : 0
+                })).sort((a, b) => b.total - a.total);
+                if (p.limite) opciones = opciones.slice(0, p.limite);
+
+                preguntas.push({
+                    seccion: p.seccion, titulo: p.titulo, totalReal: respondentes,
+                    sinDato: Number(totalEncuestas) - respondentes, opciones, multiple: true
+                });
+                continue;
+            }
+
             const [filas] = await sequelize.query(
                 `SELECT ${p.columna} AS valor, COUNT(*) AS total FROM encuestas_turisticas
                  WHERE 1=1 ${filtro.sql} GROUP BY ${p.columna}`,

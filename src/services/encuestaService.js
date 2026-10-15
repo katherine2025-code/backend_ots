@@ -168,6 +168,32 @@ const encuestaService = {
         return true;
     },
 
+    // Cuestionario de turista ajustado (11-09-2026): 26 preguntas, con gasto por rubro (6),
+    // actividades separadas del motivo, rubro de mayor gasto y motivos de recomendación. Si la
+    // base todavía tiene la versión anterior (no tiene NINGUNA de las preguntas nuevas), se
+    // reemplaza por la del seed. Si el administrador ya lo editó y conserva alguna, no se toca.
+    async actualizarCuestionarioTurista() {
+        const encuesta = await Encuesta.findOne({ where: { tipo: 'turista' } });
+        if (!encuesta) return false;
+
+        const nuevas = await EncuestaPregunta.count({
+            where: {
+                id_encuesta: encuesta.id_encuesta,
+                codigo: ['actividades', 'rubro_mayor_gasto', 'motivos_recomendacion', 'gasto_recuerdos']
+            }
+        });
+        if (nuevas > 0) return false;
+
+        const definicion = seed.find(e => e.tipo === 'turista');
+        await sequelize.transaction(async (transaction) => {
+            await EncuestaPregunta.destroy({ where: { id_encuesta: encuesta.id_encuesta }, transaction });
+            await EncuestaPregunta.bulkCreate(prepararPreguntas(definicion.preguntas, encuesta.id_encuesta), { transaction });
+            await encuesta.update({ descripcion: definicion.descripcion }, { transaction });
+        });
+        console.log('Cuestionario de turista actualizado al ajustado (26 preguntas, gasto por rubro)');
+        return true;
+    },
+
     // La pregunta "feriado" del cuestionario de hoteles debe ofrecer exactamente los 7 feriados
     // del calendario oficial (utils/feriados.js) - mismos nombres que usa el filtro de Ocupación
     // y la tabla `feriados`, para que un feriado elegido en el campo se pueda cruzar con el resto
