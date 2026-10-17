@@ -84,6 +84,11 @@ const esquemaService = {
             await agregarColumna('encuestas_turisticas', columna, definicion);
         }
 
+        // Coordenadas GPS del envío (formato definitivo de la encuesta, columnas gps_lat/gps_lon).
+        // Permiten ubicar cada encuesta en el mapa del dashboard. NULL si el envío no trae GPS.
+        await agregarColumna('encuestas_turisticas', 'gps_lat', 'DECIMAL(10,7) NULL');
+        await agregarColumna('encuestas_turisticas', 'gps_lon', 'DECIMAL(10,7) NULL');
+
         // Nuevo tipo de pregunta "date" (fecha) en los cuestionarios
         const [col] = await sequelize.query(
             `SELECT COLUMN_TYPE AS t FROM information_schema.COLUMNS
@@ -98,6 +103,7 @@ const esquemaService = {
             console.log("encuesta_preguntas.tipo ahora admite 'date'");
         }
 
+        await this.asegurarLlavesRespuestas();
         await this.clasificarHotelesPorCanton();
         await this.corregirOcupacionHistorica();
         await this.recuperarCapacidadSalinasAgosto2026();
@@ -118,6 +124,35 @@ const esquemaService = {
                 `ALTER TABLE predicciones MODIFY modelo_utilizado ENUM('RandomForest','XGBoost','Prophet') NOT NULL`
             );
             console.log("predicciones.modelo_utilizado ahora admite 'Prophet'");
+        }
+    },
+
+    // respuestas_encuestas (encuestas llenadas desde la app) quedó sin llaves foráneas: el modelo
+    // de Sequelize no declaraba sus relaciones, así que en el diagrama aparecía "huérfana". Se
+    // agregan aquí las FK hacia encuestas y usuarios para que la relación sea explícita en el
+    // esquema. Idempotente: solo agrega la que falte. La tabla suele estar vacía, así que es seguro.
+    async asegurarLlavesRespuestas() {
+        const fks = [
+            { col: 'id_encuesta', ref: 'encuestas', refCol: 'id_encuesta', nombre: 'fk_respuestas_encuesta' },
+            { col: 'id_usuario', ref: 'usuarios', refCol: 'id_usuario', nombre: 'fk_respuestas_usuario' }
+        ];
+        for (const fk of fks) {
+            const [existe] = await sequelize.query(
+                `SELECT COUNT(*) AS n FROM information_schema.KEY_COLUMN_USAGE
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'respuestas_encuestas'
+                   AND COLUMN_NAME = :col AND REFERENCED_TABLE_NAME IS NOT NULL`,
+                { replacements: { col: fk.col }, type: QueryTypes.SELECT }
+            );
+            if (Number(existe.n) > 0) continue;
+            try {
+                await sequelize.query(
+                    `ALTER TABLE respuestas_encuestas
+                     ADD CONSTRAINT ${fk.nombre} FOREIGN KEY (${fk.col}) REFERENCES ${fk.ref}(${fk.refCol})`
+                );
+                console.log(`FK agregada: respuestas_encuestas.${fk.col} -> ${fk.ref}.${fk.refCol}`);
+            } catch (e) {
+                console.warn(`No se pudo agregar la FK ${fk.nombre}: ${e.message}`);
+            }
         }
     },
 

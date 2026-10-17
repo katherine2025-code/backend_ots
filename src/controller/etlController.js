@@ -229,12 +229,18 @@ const obtenerDetallesProceso = async (req, res) => {
             // ESTADÍSTICAS COMPLETAS DE ENCUESTAS
             // ==========================================
             const [stats] = await pool.query(`
-                SELECT 
+                SELECT
                     COUNT(*) as total_registros,
-                    COUNT(DISTINCT pais_residencia) as paises_diferentes,
-                    AVG(nivel_satisfaccion) as satisfaccion_promedio,
+                    -- Solo países "reales": que empiezan con letra (excluye números/basura de columnas
+                    -- mal alineadas) y no el relleno 'Prefiero no responder'. Evita conteos inflados.
+                    COUNT(DISTINCT CASE WHEN pais_residencia REGEXP '^[A-Za-zÁÉÍÓÚÑáéíóúñ]'
+                         AND pais_residencia <> 'Prefiero no responder' THEN pais_residencia END) as paises_diferentes,
+                    -- Excluye el 0 (sin dato) para no sesgar el promedio hacia abajo.
+                    AVG(NULLIF(nivel_satisfaccion, 0)) as satisfaccion_promedio,
                     AVG(gasto_total) as gasto_promedio,
-                    AVG(edad) as edad_promedio,
+                    -- Solo edades plausibles (1-120): un año (2026) u otro valor mal parseado no
+                    -- debe disparar el promedio (antes mostraba "493 años").
+                    AVG(CASE WHEN edad BETWEEN 1 AND 120 THEN edad END) as edad_promedio,
                     COUNT(CASE WHEN genero = 'Femenino' THEN 1 END) as total_femenino,
                     COUNT(CASE WHEN genero = 'Masculino' THEN 1 END) as total_masculino,
                     SUM(CASE WHEN nivel_satisfaccion >= 4 THEN 1 ELSE 0 END) as satisfechos,

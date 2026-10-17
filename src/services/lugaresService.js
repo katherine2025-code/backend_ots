@@ -81,6 +81,28 @@ const lugaresService = {
             { type: QueryTypes.SELECT }
         );
 
+        // Puntos GPS reales de cada encuesta (formato nuevo del cuestionario, columnas gps_lat/gps_lon).
+        // Son la ubicación donde se levantó cada encuesta - complementan los lugares declarados.
+        const gps = await sequelize.query(
+            `SELECT feriado, lat, lng FROM (
+                SELECT ${FERIADO_EFECTIVO_SQL('DATE(t.fecha_encuesta)')} AS feriado,
+                       t.gps_lat AS lat, t.gps_lon AS lng
+                FROM encuestas_turisticas t
+                WHERE t.gps_lat IS NOT NULL AND t.gps_lon IS NOT NULL
+             ) g`,
+            { type: QueryTypes.SELECT }
+        );
+        const gpsPorFeriado = new Map();
+        const gpsSinFeriado = [];
+        const gpsTodos = [];
+        for (const p of gps) {
+            const punto = { lat: Number(p.lat), lng: Number(p.lng) };
+            gpsTodos.push(punto);
+            if (!p.feriado) { gpsSinFeriado.push(punto); continue; }
+            if (!gpsPorFeriado.has(p.feriado)) gpsPorFeriado.set(p.feriado, []);
+            gpsPorFeriado.get(p.feriado).push(punto);
+        }
+
         const totalPorFeriado = new Map(encuestas.filter(e => e.feriado).map(e => [e.feriado, Number(e.total)]));
         const totalSinFeriado = Number(encuestas.find(e => !e.feriado)?.total || 0);
 
@@ -97,15 +119,17 @@ const lugaresService = {
         for (const v of visitas) acumulado.set(v.lugar, (acumulado.get(v.lugar) || 0) + Number(v.visitas));
         const totalTodos = [...totalPorFeriado.values()].reduce((a, b) => a + b, 0) + totalSinFeriado;
 
-        const grupo = (filas, total) => ({ encuestas: total, lugares: armarLugares(filas, total) });
+        const grupo = (filas, total, puntosGps = []) => ({
+            encuestas: total, lugares: armarLugares(filas, total), puntosGps
+        });
 
         return {
             feriados: NOMBRES_FERIADOS.map(nombre => ({
                 feriado: nombre,
-                ...grupo(porFeriado.get(nombre) || [], totalPorFeriado.get(nombre) || 0)
+                ...grupo(porFeriado.get(nombre) || [], totalPorFeriado.get(nombre) || 0, gpsPorFeriado.get(nombre) || [])
             })),
-            sinFeriado: grupo(sinFeriado, totalSinFeriado),
-            todos: grupo([...acumulado].map(([lugar, v]) => ({ lugar, visitas: v })), totalTodos),
+            sinFeriado: grupo(sinFeriado, totalSinFeriado, gpsSinFeriado),
+            todos: grupo([...acumulado].map(([lugar, v]) => ({ lugar, visitas: v })), totalTodos, gpsTodos),
             lugaresSinCoordenadas: catalogo.filter(l => l.lat === null).map(l => l.nombre)
         };
     }
