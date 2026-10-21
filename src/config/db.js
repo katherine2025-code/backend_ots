@@ -6,8 +6,18 @@ const mysql = require('mysql2/promise');
 const DB_HOST = process.env.DB_HOST || '127.0.0.1';
 const DB_PORT = process.env.DB_PORT || 3306;
 const DB_USER = process.env.DB_USER || 'root';
-const DB_PASSWORD = process.env.DB_PASSWORD || 'vidamiaIsa2910.';
 const DB_NAME = process.env.DB_NAME || 'ots';
+
+// La contraseña nunca va en el código. En producción es obligatoria: sin ella el servidor no
+// arranca (mejor un error claro que intentar conectar sin contraseña). En desarrollo se permite
+// vacía, para un MySQL/MariaDB local con root sin contraseña.
+if (process.env.NODE_ENV === 'production' && !process.env.DB_PASSWORD) {
+    throw new Error(
+        'Falta la variable de entorno DB_PASSWORD (obligatoria con NODE_ENV=production). ' +
+        'Configúrala en el entorno del servidor (p. ej. Environment de la app en Dokploy).'
+    );
+}
+const DB_PASSWORD = process.env.DB_PASSWORD || '';
 
 console.log('Configuración de BD detectada (MySQL Local 8.0):');
 console.log(`   Host: ${DB_HOST}`);
