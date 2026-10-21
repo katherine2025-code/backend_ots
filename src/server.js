@@ -8,6 +8,11 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// En Dokploy la API corre detrás de un proxy (Traefik): sin esto, req.ip sería la IP del proxy
+// para TODOS los usuarios, y el límite de intentos de login (rateLimitMiddleware) bloquearía a
+// todo el mundo a la vez. 1 = confiar solo en el primer proxy (el de Dokploy) para X-Forwarded-For.
+app.set('trust proxy', 1);
+
 // CORS
 // FRONTEND_URL (.env): el/los dominio(s) real(es) del front ya desplegado. Admite VARIOS
 // orígenes separados por coma, ej:
