@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const db = require('../config/db');
 const { ML_SERVICE_URL, mlHeaders, estadoErrorML } = require('../config/mlService');
+const bitacoraService = require('../services/bitacoraService');
 
 /**
  * Cargar archivo CSV y reenviarlo al microservicio Python
@@ -403,6 +404,46 @@ const obtenerLogsErrores = async (req, res) => {
     }
 };
 
+// Quita del historial una carga FALLIDA (estado ERROR). Una fila de etl_procesos es solo el
+// registro de la carga: los datos cargados no guardan id_etl, así que borrarla nunca deshace nada.
+// Por eso solo se permite con ERROR (el ETL hace rollback y no deja datos): borrar una carga
+// COMPLETADO haría creer que se deshizo y perdería el rastro de quién cargó esos datos.
+const eliminarRegistro = async (req, res) => {
+    try {
+        const id = Number.parseInt(req.params.id, 10);
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({ error: 'ID de proceso inválido' });
+        }
+
+        const [procesos] = await db.pool.query(
+            'SELECT id_etl, nombre_archivo, estado FROM etl_procesos WHERE id_etl = ?', [id]
+        );
+        if (procesos.length === 0) {
+            return res.status(404).json({ error: 'Proceso no encontrado' });
+        }
+
+        const proceso = procesos[0];
+        if (proceso.estado !== 'ERROR') {
+            return res.status(409).json({
+                error: 'Solo se pueden eliminar del historial las cargas con ERROR. Las demás son el ' +
+                    'registro de qué datos se cargaron y quién; borrarlas no deshace la carga.'
+            });
+        }
+
+        await db.pool.query("DELETE FROM etl_procesos WHERE id_etl = ? AND estado = 'ERROR'", [id]);
+        await bitacoraService.registrar({
+            id_usuario: req.usuario?.id_usuario,
+            accion: 'ELIMINAR_PROCESO_ETL',
+            modulo: 'ETL',
+            descripcion: `Eliminó del historial la carga fallida #${id} (${proceso.nombre_archivo})`
+        });
+
+        res.json({ success: true, mensaje: 'Registro eliminado del historial' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 // ==========================================
 // EXPORTAR TODAS LAS FUNCIONES
 // ==========================================
@@ -413,5 +454,6 @@ module.exports = {
     obtenerEstadisticasDatos,
     obtenerTiposDatos,
     obtenerDetallesProceso,
-    obtenerLogsErrores
+    obtenerLogsErrores,
+    eliminarRegistro
 };

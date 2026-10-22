@@ -33,4 +33,7 @@ router.get('/estadisticas', autenticar, verificarRol([0]), etlController.obtener
 router.get('/tipos-datos', autenticar, verificarRol([0]), etlController.obtenerTiposDatos);
 router.get('/detalles/:id', autenticar, verificarRol([0]), etlController.obtenerDetallesProceso);
 
+// Quitar del historial una carga fallida (solo estado ERROR, ver eliminarRegistro)
+router.delete('/registro/:id', autenticar, verificarRol([0]), etlController.eliminarRegistro);
+
 module.exports = router;
