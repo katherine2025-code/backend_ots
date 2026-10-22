@@ -4,9 +4,7 @@ const Hotel = require('../models/Hotel');
 const { sequelize } = require('../config/db');
 const { Op } = require('sequelize');
 const axios = require('axios');
-const env = require('../config/environment');
-
-const ML_URL = process.env.ML_SERVICE_URL || env.ML_SERVICE_URL || 'http://localhost:5000';
+const { ML_SERVICE_URL: ML_URL, mlHeaders, estadoErrorML } = require('../config/mlService');
 
 // Obtener todas las predicciones
 const obtenerTodas = async (req, res) => {
@@ -110,11 +108,11 @@ const crear = async (req, res) => {
 // Realizar predicción conectando con microservicio ML
 const predecir = async (req, res) => {
     try {
-        const response = await axios.post(`${ML_URL}/predecir`, req.body);
+        const response = await axios.post(`${ML_URL}/predecir`, req.body, { headers: mlHeaders() });
         res.json(response.data);
     } catch (error) {
         console.error('Error al generar predicción:', error.message);
-        const status = error.response ? error.response.status : 500;
+        const status = estadoErrorML(error);
         const detalles = error.response?.data || error.message;
         res.status(status).json({
             error: 'Error al conectar con el servicio de predicción ML',
@@ -126,11 +124,11 @@ const predecir = async (req, res) => {
 // Proyección por rango de fechas conectando con microservicio ML
 const predecirRango = async (req, res) => {
     try {
-        const response = await axios.post(`${ML_URL}/predecir-rango`, req.body);
+        const response = await axios.post(`${ML_URL}/predecir-rango`, req.body, { headers: mlHeaders() });
         res.json(response.data);
     } catch (error) {
         console.error('Error al generar proyección por rango:', error.message);
-        const status = error.response ? error.response.status : 500;
+        const status = estadoErrorML(error);
         const detalles = error.response?.data || error.message;
         res.status(status).json({
             error: 'Error al conectar con el servicio de predicción ML',
@@ -142,11 +140,11 @@ const predecirRango = async (req, res) => {
 // Entrenar modelo conectando con microservicio ML
 const entrenarModelo = async (req, res) => {
     try {
-        const response = await axios.post(`${ML_URL}/entrenar`, req.body || {});
+        const response = await axios.post(`${ML_URL}/entrenar`, req.body || {}, { headers: mlHeaders() });
         res.json(response.data);
     } catch (error) {
         console.error('Error al entrenar modelo:', error.message);
-        const status = error.response ? error.response.status : 500;
+        const status = estadoErrorML(error);
         const detalles = error.response?.data || error.message;
         res.status(status).json({
             error: 'Error al entrenar modelo en el servicio ML',

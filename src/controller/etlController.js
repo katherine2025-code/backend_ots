@@ -4,11 +4,7 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 const db = require('../config/db');
-
-// ==========================================
-// CONFIGURACIÓN DEL MICROSERVICIO PYTHON
-// ==========================================
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5000';
+const { ML_SERVICE_URL, mlHeaders, estadoErrorML } = require('../config/mlService');
 
 /**
  * Cargar archivo CSV y reenviarlo al microservicio Python
@@ -53,7 +49,7 @@ const cargarArchivo = async (req, res) => {
             `${ML_SERVICE_URL}/etl/procesar`,
             formData,
             {
-                headers: { ...formData.getHeaders() },
+                headers: mlHeaders(formData.getHeaders()),
                 timeout: 600000
             }
         );
@@ -101,7 +97,7 @@ const cargarArchivo = async (req, res) => {
         // (400 = archivo/columnas inválidas, 500 = fallo interno/BD) en vez
         // de responder siempre 500, para que el frontend pueda distinguir
         // un error del usuario de una falla del servidor.
-        const statusUpstream = error.response?.status;
+        const statusUpstream = estadoErrorML(error);
         const mensajeUpstream = error.response?.data?.detail || error.message;
 
         if (procesoId) {
@@ -112,7 +108,7 @@ const cargarArchivo = async (req, res) => {
             fs.unlinkSync(req.file.path);
         }
 
-        res.status(statusUpstream || 500).json({
+        res.status(statusUpstream).json({
             error: mensajeUpstream,
             detalles: error.response?.data
         });
