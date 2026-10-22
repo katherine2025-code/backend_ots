@@ -10,6 +10,11 @@ router.use(autenticar);
 // Rutas principales
 router.get('/', prediccionController.obtenerTodas);
 router.get('/metricas', prediccionController.obtenerMetricas);
+// Proxy al microservicio ML (solo lectura): métricas del modelo entrenado y validación histórica.
+// Las usan las páginas Predicciones (Super Admin, Admin, Investigador) y ETL (Super Admin), así que
+// quedan para todos los roles menos Encuestador. Van antes de '/:id' para que no las capture.
+router.get('/ml/metricas', verificarRol([0, 1, 2]), prediccionController.obtenerMetricasML);
+router.get('/ml/historicas', verificarRol([0, 1, 2]), prediccionController.obtenerPrediccionesHistoricas);
 router.get('/:id', prediccionController.obtenerPorId);
 router.post('/', prediccionController.crear);
 // Generar una predicción (simulador / proyección por rango): Super Administrador e
