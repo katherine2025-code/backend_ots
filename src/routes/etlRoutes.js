@@ -27,9 +27,6 @@ router.get('/proceso/:id/detalles', autenticar, verificarRol([0]), etlController
 // El frontend pide '/logs-errores'
 router.get('/logs-errores', autenticar, verificarRol([0]), etlController.obtenerLogsErrores);
 
-// El frontend pide '/ejecuciones-programadas'
-router.get('/ejecuciones-programadas', autenticar, verificarRol([0]), etlController.obtenerEjecucionesProgramadas);
-
 // Estas ya funcionaban, las mantenemos
 router.get('/historial', autenticar, verificarRol([0]), etlController.obtenerHistorial);
 router.get('/estadisticas', autenticar, verificarRol([0]), etlController.obtenerEstadisticasDatos);

@@ -403,21 +403,6 @@ const obtenerLogsErrores = async (req, res) => {
     }
 };
 
-const obtenerEjecucionesProgramadas = async (req, res) => {
-    try {
-        const pool = db.pool;
-        const [programadas] = await pool.query(`
-            SELECT id_etl, nombre_archivo, estado 
-            FROM etl_procesos 
-            WHERE estado = 'PROGRAMADO'
-            ORDER BY fecha_inicio ASC
-        `);
-        res.json(programadas);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
 // ==========================================
 // EXPORTAR TODAS LAS FUNCIONES
 // ==========================================
@@ -428,6 +413,5 @@ module.exports = {
     obtenerEstadisticasDatos,
     obtenerTiposDatos,
     obtenerDetallesProceso,
-    obtenerLogsErrores,
-    obtenerEjecucionesProgramadas
+    obtenerLogsErrores
 };
