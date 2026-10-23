@@ -1,4 +1,11 @@
 // models/Prediccion.js - VERSIÓN FINAL CORREGIDA
+//
+// ⚠ TABLA EN DESUSO (oct/2026): se retiró la función de "predicciones guardadas". El modelo de ML
+// predice la ocupación del DESTINO (no la de un hotel) y nada escribe en esta tabla; se quitaron
+// sus rutas (listar, detalle, crear, validar, descartar, métricas) y el gráfico "Predicho vs Real"
+// ahora sale de la validación histórica del microservicio. El modelo y la tabla se CONSERVAN a
+// propósito: models/index.js lo registra (sync al arrancar) y sql/001_esquema_inicial.sql crea la
+// tabla; quitarlos es una decisión aparte (migración + limpieza del esquema).
 const { sequelize } = require('../config/db');
 const { DataTypes } = require('sequelize');
 
