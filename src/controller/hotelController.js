@@ -27,7 +27,14 @@ const obtenerPorId = async (req, res) => {
 // Crear hotel
 const crear = async (req, res) => {
     try {
-        const hotel = await Hotel.create(req.body);
+        const { nombre, direccion, telefono, parroquia, canton, categoria,
+                habitaciones_totales, ubicacion_lat, ubicacion_lng,
+                precio_promedio, playa_cercana, distancia_playa, servicios, estado } = req.body;
+        const hotel = await Hotel.create({
+            nombre, direccion, telefono, parroquia, canton, categoria,
+            habitaciones_totales, ubicacion_lat, ubicacion_lng,
+            precio_promedio, playa_cercana, distancia_playa, servicios, estado
+        });
         res.status(201).json(hotel);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -37,9 +44,15 @@ const crear = async (req, res) => {
 // Actualizar hotel
 const actualizar = async (req, res) => {
     try {
-        const [updated] = await Hotel.update(req.body, {
-            where: { id_hotel: req.params.id }
-        });
+        const { nombre, direccion, telefono, parroquia, canton, categoria,
+                habitaciones_totales, ubicacion_lat, ubicacion_lng,
+                precio_promedio, playa_cercana, distancia_playa, servicios, estado } = req.body;
+        const [updated] = await Hotel.update(
+            { nombre, direccion, telefono, parroquia, canton, categoria,
+              habitaciones_totales, ubicacion_lat, ubicacion_lng,
+              precio_promedio, playa_cercana, distancia_playa, servicios, estado },
+            { where: { id_hotel: req.params.id } }
+        );
         if (updated === 0) {
             return res.status(404).json({ error: 'Hotel no encontrado' });
         }

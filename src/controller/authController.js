@@ -111,18 +111,13 @@ const olvidePassword = async (req, res) => {
 
         const { estado, usuarioId } = await authService.solicitarReset(correo);
 
-        if (estado === 'no_existe') {
-            return res.status(404).json({ error: 'No existe una cuenta registrada con ese correo.' });
+        // Siempre 200 para no revelar si el correo existe o la cuenta está activa
+        if (estado === 'enviado') {
+            await authService.registrarBitacora(usuarioId, 'SOLICITUD_RESET', 'auth', req.ip);
         }
-        if (estado === 'inactivo') {
-            return res.status(403).json({ error: 'La cuenta está desactivada. Contacta al administrador.' });
-        }
-
-        // estado === 'enviado': se mandó el correo. Queda registrado en bitácora.
-        await authService.registrarBitacora(usuarioId, 'SOLICITUD_RESET', 'auth', req.ip);
 
         res.json({
-            mensaje: 'Te enviamos un enlace a tu correo para restablecer tu contraseña. Es válido por 1 hora.'
+            mensaje: 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.'
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
