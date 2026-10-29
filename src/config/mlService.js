@@ -14,7 +14,7 @@ const mlHeaders = (extra = {}) => ({
 // "Credenciales incorrectas". Se responde 502 (falla del servicio dependiente) en su lugar.
 const estadoErrorML = (error) => {
     const status = error.response?.status;
-    if (!status) return 500;
+    if (!status) return 503; // ECONNREFUSED, timeout → microservicio no disponible
     if (status === 401 || status === 503) return 502;
     return status;
 };

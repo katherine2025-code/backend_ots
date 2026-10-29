@@ -1,4 +1,5 @@
 const dashboardService = require('../services/dashboardService');
+const { estadoErrorML } = require('../config/mlService');
 
 const obtenerKPIs = async (req, res) => {
     try {
@@ -38,33 +39,6 @@ const obtenerTendencia = async (req, res) => {
     }
 };
 
-const obtenerPredicciones = async (req, res) => {
-    try {
-        const predicciones = await dashboardService.obtenerPrediccionesRecientes();
-        res.json(predicciones);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-const obtenerEstadisticas = async (req, res) => {
-    try {
-        const estadisticas = await dashboardService.obtenerEstadisticasDashboard();
-        res.json(estadisticas);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-const obtenerMetricasModelo = async (req, res) => {
-    try {
-        const metricas = await dashboardService.obtenerMetricasModelo();
-        res.json(metricas);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
 const obtenerOcupacionPorTemporada = async (req, res) => {
     try {
         const datos = await dashboardService.obtenerOcupacionPorTemporada();
@@ -85,10 +59,13 @@ const obtenerOcupacionPorParroquia = async (req, res) => {
 
 const obtenerPredichoVsReal = async (req, res) => {
     try {
-        const datos = await dashboardService.obtenerPredichoVsReal();
-        res.json(datos);
+        res.json(await dashboardService.obtenerPredichoVsReal());
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error en predicho vs real:', error.message);
+        res.status(estadoErrorML(error)).json({
+            error: 'Error al obtener la comparación predicho vs real del servicio ML',
+            detalles: error.response?.data || error.message
+        });
     }
 };
 
@@ -96,9 +73,6 @@ module.exports = {
     obtenerKPIs,
     obtenerOcupacionPorHotel,
     obtenerTendencia,
-    obtenerPredicciones,
-    obtenerEstadisticas,
-    obtenerMetricasModelo,
     obtenerOcupacionPorTemporada,
     obtenerOcupacionPorParroquia,
     obtenerPredichoVsReal

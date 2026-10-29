@@ -1,8 +1,9 @@
 const OcupacionHotelera = require('../models/OcupacionHotelera');
 const EncuestaTuristica = require('../models/EncuestaTuristica');
 const Hotel = require('../models/Hotel');
-const Prediccion = require('../models/Prediccion');
 const { sequelize, pool } = require('../config/db');
+const axios = require('axios');
+const { ML_SERVICE_URL, mlHeaders } = require('../config/mlService');
 
 const obtenerKPIsGenerales = async (fechaInicio, fechaFin) => {
     const [ocupacionRows] = await pool.query(`
@@ -58,84 +59,6 @@ const obtenerTendenciaOcupacion = async (fechaInicio, fechaFin) => {
     return rows;
 };
 
-const obtenerPrediccionesRecientes = async () => {
-    return await Prediccion.findAll({
-        limit: 20,
-        order: [['fecha_generacion', 'DESC']]
-    });
-};
-
-const obtenerEstadisticasDashboard = async () => {
-    const { Op } = require('sequelize');
-    
-    // Total de registros de ocupación
-    const totalRegistros = await OcupacionHotelera.count();
-    
-    // Ocupación promedio últimos 30 días
-    const fechaLimite = new Date();
-    fechaLimite.setDate(fechaLimite.getDate() - 30);
-    
-    const ocupacionPromedio = await OcupacionHotelera.findOne({
-        attributes: [
-            [sequelize.fn('AVG', sequelize.col('ocupacion_porcentaje')), 'promedio']
-        ],
-        where: {
-            fecha: { [Op.gte]: fechaLimite }
-        },
-        raw: true
-    });
-
-    // Predicciones hoy
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    
-    const prediccionesHoy = await Prediccion.count({
-        where: {
-            fecha_generacion: { [Op.gte]: hoy }
-        }
-    });
-
-    // Precisión promedio del modelo
-    const precisionPromedio = await Prediccion.findOne({
-        attributes: [
-            [sequelize.fn('AVG', sequelize.col('precision_modelo')), 'promedio']
-        ],
-        where: {
-            estado: 'validada'
-        },
-        raw: true
-    });
-
-    return {
-        total_registros: totalRegistros,
-        ocupacion_promedio: parseFloat(ocupacionPromedio?.promedio || 0).toFixed(2),
-        predicciones_hoy: prediccionesHoy,
-        precision_modelo: parseFloat(precisionPromedio?.promedio || 0).toFixed(2)
-    };
-};
-
-const obtenerMetricasModelo = async () => {
-    try {
-        const metricas = await Prediccion.findAll({
-            attributes: [
-                'modelo_utilizado',
-                [sequelize.fn('AVG', sequelize.col('precision_modelo')), 'precision_promedio'],
-                [sequelize.fn('AVG', sequelize.col('error_absoluto')), 'error_promedio'],
-                [sequelize.fn('COUNT', sequelize.col('id_prediccion')), 'total_predicciones']
-            ],
-            group: ['modelo_utilizado'],
-            raw: true
-        });
-
-        return {
-            modelos: metricas
-        };
-    } catch (error) {
-        console.error('Error al obtener métricas del modelo:', error.message);
-        return { modelos: [] };
-    }
-};
-
 // La ocupación no tiene una columna "temporada" propia (solo un id_temporada que no se usa en
 // ninguna carga real). La temporada real viene del feriado al que corresponde cada registro
 // (Alta/Media, según el calendario oficial - ver utils/feriados.js), con el mismo margen de
@@ -161,23 +84,6 @@ const obtenerOcupacionPorTemporada = async () => {
     return datos;
 };
 
-// Ocupación predicha vs. real por mes, SOLO para predicciones ya validadas (con ocupacion_real
-// cargada) - una predicción sin validar no tiene con qué compararse todavía. Si no hay ninguna
-// validada, el arreglo queda vacío: el frontend lo muestra como "aún no hay predicciones
-// validadas" en vez de dibujar un dato inventado.
-const obtenerPredichoVsReal = async () => {
-    const datos = await sequelize.query(
-        // `real` es palabra reservada en MySQL (sinónimo histórico de DOUBLE) - va entre backticks.
-        `SELECT DATE_FORMAT(fecha, '%Y-%m') AS mes,
-                AVG(ocupacion_predicha) AS predicho, AVG(ocupacion_real) AS \`real\`
-         FROM predicciones
-         WHERE ocupacion_real IS NOT NULL
-         GROUP BY mes ORDER BY mes`,
-        { type: require('sequelize').QueryTypes.SELECT }
-    );
-    return datos.map(d => ({ mes: d.mes, predicho: parseFloat(d.predicho), real: parseFloat(d.real) }));
-};
-
 const obtenerOcupacionPorParroquia = async () => {
     const datos = await OcupacionHotelera.findAll({
         include: [{
@@ -198,13 +104,54 @@ const obtenerOcupacionPorParroquia = async () => {
     return datos;
 };
 
+// Ocupación predicha vs. real por mes. Ya NO lee la tabla `predicciones` (en desuso: nada escribe
+// en ella): usa la validación histórica del microservicio, que predice cada registro real de
+// ocupación con el modelo en uso y lo compara con el valor observado. Aquí se agrega por mes con el
+// formato que espera el gráfico ({ mes, predicho, real }).
+// Si el microservicio no tiene modelo entrenado, responde datos vacíos con un mensaje (no un error).
+const obtenerPredichoVsReal = async () => {
+    try {
+        const { data } = await axios.get(`${ML_SERVICE_URL}/predicciones-historicas`, {
+            headers: mlHeaders(),
+            timeout: 300000
+        });
+        const porMes = new Map();
+        for (const p of data.predicciones || []) {
+            const mes = String(p.fecha).slice(0, 7); // 'YYYY-MM'
+            const acc = porMes.get(mes) || { predicho: 0, real: 0, registros: 0 };
+            acc.predicho += Number(p.valor_predicho) || 0;
+            acc.real += Number(p.valor_real) || 0;
+            acc.registros += 1;
+            porMes.set(mes, acc);
+        }
+        const datos = [...porMes.entries()]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([mes, a]) => ({
+                mes,
+                predicho: Math.round((a.predicho / a.registros) * 100) / 100,
+                real: Math.round((a.real / a.registros) * 100) / 100,
+                registros: a.registros
+            }));
+        return {
+            datos,
+            mensaje: datos.length ? null : 'Todavía no hay registros de ocupación para comparar con el modelo.'
+        };
+    } catch (error) {
+        // El microservicio responde 400 cuando no hay ningún modelo entrenado: no es un fallo.
+        if (error.response?.status === 400) {
+            return {
+                datos: [],
+                mensaje: 'El modelo de predicción todavía no está entrenado: entrénalo en Predicciones para ver esta comparación.'
+            };
+        }
+        throw error;
+    }
+};
+
 module.exports = { 
     obtenerKPIsGenerales, 
     obtenerOcupacionPorHotel, 
     obtenerTendenciaOcupacion,
-    obtenerPrediccionesRecientes,
-    obtenerEstadisticasDashboard,
-    obtenerMetricasModelo,
     obtenerOcupacionPorTemporada,
     obtenerOcupacionPorParroquia,
     obtenerPredichoVsReal
