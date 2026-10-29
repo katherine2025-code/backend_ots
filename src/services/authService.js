@@ -21,44 +21,21 @@ const hashToken = (token) => crypto.createHash('sha256').update(token).digest('h
 // MÉTODO LOGIN
 // ==========================================
 const login = async (correo, password) => {
-    console.log('\n========================================');
-    console.log('[SERVICE] Iniciando login para:', correo);
-
     try {
-        // Buscar usuario
-        const usuario = await Usuario.findOne({ 
-            where: { correo: correo }
-        });
+        const usuario = await Usuario.findOne({ where: { correo } });
 
         if (!usuario) {
-            console.log('[SERVICE] Usuario NO encontrado con correo:', correo);
             throw new Error('Credenciales incorrectas');
         }
 
-        console.log('[SERVICE] Usuario encontrado:');
-        console.log('   - ID:', usuario.id_usuario);
-        console.log('   - Nombres:', usuario.nombres);
-        console.log('   - Correo:', usuario.correo);
-        console.log('   - Estado:', usuario.estado);
-        console.log('   - ID Rol:', usuario.id_rol);
-
-        // Verificar estado
         if (usuario.estado !== 1) {
-            console.log('[SERVICE] Usuario inactivo');
             throw new Error('Usuario inactivo. Contacta al administrador.');
         }
 
-        // Verificar contraseña
-        console.log('[SERVICE] Verificando contraseña...');
         const esValida = await bcrypt.compare(password, usuario.password_hash);
-        console.log('[SERVICE] Contraseña válida:', esValida);
-        
         if (!esValida) {
-            console.log('[SERVICE] Contraseña INCORRECTA');
             throw new Error('Credenciales incorrectas');
         }
-
-        console.log('[SERVICE] Login exitoso, generando token...');
 
         const token = generateToken({
             id_usuario: usuario.id_usuario,
@@ -67,9 +44,6 @@ const login = async (correo, password) => {
             nombres: usuario.nombres,
             apellidos: usuario.apellidos
         });
-
-        console.log('[SERVICE] Token generado');
-        console.log('========================================\n');
 
         return {
             token,
@@ -83,8 +57,6 @@ const login = async (correo, password) => {
         };
 
     } catch (error) {
-        console.error('[SERVICE] Error en login:', error.message);
-        console.log('========================================\n');
         throw error;
     }
 };
@@ -93,7 +65,6 @@ const login = async (correo, password) => {
 // MÉTODO REGISTRAR
 // ==========================================
 const registrar = async (datos) => {
-    console.log('[SERVICE] Iniciando registro en BD...');
 
     const { nombres, apellidos, correo, password, id_rol } = datos;
 
@@ -125,8 +96,6 @@ const registrar = async (datos) => {
         estado: 1
     });
 
-    console.log('[SERVICE] Usuario creado con ID:', usuario.id_usuario);
-
     return {
         usuario: {
             id: usuario.id_usuario,
@@ -151,7 +120,7 @@ const registrarBitacora = async (idUsuario, accion, modulo, ip) => {
             fecha: new Date()
         });
     } catch (error) {
-        console.log('[SERVICE] No se pudo registrar la bitácora:', error.message);
+        console.error('[SERVICE] No se pudo registrar la bitácora:', error.message);
     }
 };
 

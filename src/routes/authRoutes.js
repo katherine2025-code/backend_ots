@@ -3,10 +3,10 @@ const router = express.Router();
 const authController = require('../controller/authController');
 const { autenticar } = require('../middleware/authMiddleware');
 const { validarLogin, validarRegistro, validarCambioPassword } = require('../validators/authValidator');
-const { limitarLogin } = require('../middleware/rateLimitMiddleware');
+const { limitarLogin, limitarRegistro } = require('../middleware/rateLimitMiddleware');
 
 router.post('/login', limitarLogin, validarLogin, authController.login);
-router.post('/registro', validarRegistro, authController.registro);
+router.post('/registro', limitarRegistro, validarRegistro, authController.registro);
 // Recuperación de contraseña (públicas, sin token): solicitar enlace y luego fijar la nueva clave.
 router.post('/olvide-password', authController.olvidePassword);
 router.post('/reset-password', authController.resetearPassword);

@@ -15,4 +15,15 @@ const limitarLogin = rateLimit({
     }
 });
 
-module.exports = { limitarLogin };
+// Límite de registros por IP, para prevenir creación masiva de cuentas.
+const limitarRegistro = rateLimit({
+    windowMs: 15 * 60 * 1000, // ventana de 15 minutos
+    limit: 5,                 // 5 registros por IP en esa ventana
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: {
+        error: 'Demasiadas solicitudes de registro. Espera 15 minutos e inténtalo de nuevo.'
+    }
+});
+
+module.exports = { limitarLogin, limitarRegistro };
