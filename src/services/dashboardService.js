@@ -18,7 +18,7 @@ const obtenerKPIsGenerales = async (fechaInicio, fechaFin) => {
     `, [fechaInicio, fechaFin]);
     const ocupacionKPIs = ocupacionRows[0] || {};
     const encuestaKPIs = await EncuestaTuristica.getKPIs(fechaInicio, fechaFin);
-    const totalHoteles = (await Hotel.findAll()).length;
+    const totalHoteles = await Hotel.count();
 
     return {
         ocupacion: ocupacionKPIs,
