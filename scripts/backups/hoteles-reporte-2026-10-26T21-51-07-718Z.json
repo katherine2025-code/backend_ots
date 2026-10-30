@@ -1,0 +1,858 @@
+{
+  "fusionados": [
+    {
+      "borrado": 1019,
+      "conservado": 1087,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1021,
+      "conservado": 1077,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1022,
+      "conservado": 1072,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1023,
+      "conservado": 1071,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1024,
+      "conservado": 1076,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1026,
+      "conservado": 1075,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1112,
+      "conservado": 1067,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1114,
+      "conservado": 1040,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1115,
+      "conservado": 1041,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1116,
+      "conservado": 1030,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1117,
+      "conservado": 1036,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1118,
+      "conservado": 1064,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1119,
+      "conservado": 1039,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1120,
+      "conservado": 1043,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1121,
+      "conservado": 1046,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1122,
+      "conservado": 1045,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1123,
+      "conservado": 1056,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1124,
+      "conservado": 1058,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1125,
+      "conservado": 1049,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1126,
+      "conservado": 1054,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1127,
+      "conservado": 1051,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1128,
+      "conservado": 1065,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1130,
+      "conservado": 1078,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1131,
+      "conservado": 1084,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    },
+    {
+      "borrado": 1132,
+      "conservado": 1081,
+      "ocupacionMovida": 1,
+      "ocupacionDescartada": 0
+    }
+  ],
+  "renombrados": [
+    {
+      "id": 1087,
+      "antes": "la joya",
+      "despues": "La Joya Hotel"
+    },
+    {
+      "id": 1077,
+      "antes": "hotel vikara",
+      "despues": "Hotel Vikara Retreat"
+    },
+    {
+      "id": 1072,
+      "antes": "olas del mar",
+      "despues": "Hostal Olas del Mar"
+    },
+    {
+      "id": 1071,
+      "antes": "la jungla",
+      "despues": "Hotel La Jungla"
+    },
+    {
+      "id": 1076,
+      "antes": "altamar",
+      "despues": "Hotel Altamar"
+    },
+    {
+      "id": 1075,
+      "antes": "pacho's house",
+      "despues": "Hostal Pachos House"
+    },
+    {
+      "id": 1067,
+      "antes": "casa barlovento",
+      "despues": "Casa de Huésped Barlovento"
+    },
+    {
+      "id": 1040,
+      "antes": "hostal rocio boutique",
+      "despues": "Rocío Boutique Hotel Restaurante"
+    },
+    {
+      "id": 1041,
+      "antes": "hotel el galeón",
+      "despues": "Hotel Galeón"
+    },
+    {
+      "id": 1030,
+      "antes": "tabuba",
+      "despues": "Hotel Tabuba"
+    },
+    {
+      "id": 1036,
+      "antes": "hostal friends",
+      "despues": "Hotel Friend's"
+    },
+    {
+      "id": 1064,
+      "antes": "montañita estates",
+      "despues": "Hostería Montañita Estates"
+    },
+    {
+      "id": 1039,
+      "antes": "tabuba malecón",
+      "despues": "Hostal Tabuba Malecón"
+    },
+    {
+      "id": 1043,
+      "antes": "hotel makai",
+      "despues": "Hotel Makai"
+    },
+    {
+      "id": 1046,
+      "antes": "casa sapa inka",
+      "despues": "Casa de Huéspedes Sapa Inka"
+    },
+    {
+      "id": 1045,
+      "antes": "hostal mamacucha",
+      "despues": "Hostal Mamá Cucha"
+    },
+    {
+      "id": 1056,
+      "antes": "casa surf brothers he'enalu",
+      "despues": "Casa Surf Brothers He'e Nalu"
+    },
+    {
+      "id": 1058,
+      "antes": "pop house montañita",
+      "despues": "Hotel Pop House"
+    },
+    {
+      "id": 1049,
+      "antes": "hostal solemare",
+      "despues": "Hostal Sole Mare"
+    },
+    {
+      "id": 1054,
+      "antes": "hotel hanga roa",
+      "despues": "Hotel Hanga Roa"
+    },
+    {
+      "id": 1051,
+      "antes": "hotel tres palmas",
+      "despues": "Tres Palmas Boutique Hotel & Surf Retreats"
+    },
+    {
+      "id": 1065,
+      "antes": "la casa del sombrero",
+      "despues": "Hostería La Casa del Sombrero"
+    },
+    {
+      "id": 1078,
+      "antes": "sol y mar",
+      "despues": "Hostal Sol y Mar"
+    },
+    {
+      "id": 1084,
+      "antes": "seahorse",
+      "despues": "Hotel Seahorse"
+    },
+    {
+      "id": 1081,
+      "antes": "golden beach",
+      "despues": "Hotel Golden Beach"
+    }
+  ],
+  "cantonCorregido": [],
+  "preciosActualizados": [
+    {
+      "id": 1008,
+      "antes": 35,
+      "despues": 25
+    },
+    {
+      "id": 1009,
+      "antes": 35,
+      "despues": 20
+    },
+    {
+      "id": 1010,
+      "antes": 35,
+      "despues": 50
+    },
+    {
+      "id": 1011,
+      "antes": 35,
+      "despues": 10
+    },
+    {
+      "id": 1012,
+      "antes": 35,
+      "despues": 194
+    },
+    {
+      "id": 1013,
+      "antes": 35,
+      "despues": 90
+    },
+    {
+      "id": 1014,
+      "antes": 35,
+      "despues": 25
+    },
+    {
+      "id": 1015,
+      "antes": 35,
+      "despues": 55.63
+    },
+    {
+      "id": 1017,
+      "antes": 35,
+      "despues": 15
+    },
+    {
+      "id": 1018,
+      "antes": 35,
+      "despues": 22
+    },
+    {
+      "id": 1020,
+      "antes": 35,
+      "despues": 100
+    },
+    {
+      "id": 1025,
+      "antes": 35,
+      "despues": 25
+    },
+    {
+      "id": 1027,
+      "antes": 35,
+      "despues": 40
+    },
+    {
+      "id": 1028,
+      "antes": 0,
+      "despues": 50
+    },
+    {
+      "id": 1029,
+      "antes": 0,
+      "despues": 46.25
+    },
+    {
+      "id": 1030,
+      "antes": 0,
+      "despues": 50
+    },
+    {
+      "id": 1031,
+      "antes": 0,
+      "despues": 87.5
+    },
+    {
+      "id": 1032,
+      "antes": 0,
+      "despues": 25
+    },
+    {
+      "id": 1033,
+      "antes": 0,
+      "despues": 15
+    },
+    {
+      "id": 1034,
+      "antes": 0,
+      "despues": 15
+    },
+    {
+      "id": 1035,
+      "antes": 0,
+      "despues": 21.63
+    },
+    {
+      "id": 1036,
+      "antes": 0,
+      "despues": 20
+    },
+    {
+      "id": 1037,
+      "antes": 0,
+      "despues": 15
+    },
+    {
+      "id": 1038,
+      "antes": 0,
+      "despues": 22.5
+    },
+    {
+      "id": 1039,
+      "antes": 0,
+      "despues": 15
+    },
+    {
+      "id": 1040,
+      "antes": 0,
+      "despues": 20
+    },
+    {
+      "id": 1041,
+      "antes": 0,
+      "despues": 25
+    },
+    {
+      "id": 1042,
+      "antes": 0,
+      "despues": 35
+    },
+    {
+      "id": 1043,
+      "antes": 0,
+      "despues": 35
+    },
+    {
+      "id": 1044,
+      "antes": 0,
+      "despues": 27.5
+    },
+    {
+      "id": 1045,
+      "antes": 0,
+      "despues": 10
+    },
+    {
+      "id": 1046,
+      "antes": 0,
+      "despues": 50
+    },
+    {
+      "id": 1047,
+      "antes": 0,
+      "despues": 350
+    },
+    {
+      "id": 1048,
+      "antes": 0,
+      "despues": 110
+    },
+    {
+      "id": 1049,
+      "antes": 0,
+      "despues": 50
+    },
+    {
+      "id": 1050,
+      "antes": 0,
+      "despues": 40
+    },
+    {
+      "id": 1051,
+      "antes": 0,
+      "despues": 60
+    },
+    {
+      "id": 1052,
+      "antes": 0,
+      "despues": 20
+    },
+    {
+      "id": 1053,
+      "antes": 0,
+      "despues": 32.5
+    },
+    {
+      "id": 1054,
+      "antes": 0,
+      "despues": 73
+    },
+    {
+      "id": 1055,
+      "antes": 0,
+      "despues": 42.5
+    },
+    {
+      "id": 1056,
+      "antes": 0,
+      "despues": 45
+    },
+    {
+      "id": 1057,
+      "antes": 0,
+      "despues": 38
+    },
+    {
+      "id": 1058,
+      "antes": 0,
+      "despues": 65
+    },
+    {
+      "id": 1059,
+      "antes": 0,
+      "despues": 67.5
+    },
+    {
+      "id": 1060,
+      "antes": 0,
+      "despues": 45
+    },
+    {
+      "id": 1061,
+      "antes": 0,
+      "despues": 15
+    },
+    {
+      "id": 1062,
+      "antes": 0,
+      "despues": 35
+    },
+    {
+      "id": 1063,
+      "antes": 0,
+      "despues": 10
+    },
+    {
+      "id": 1064,
+      "antes": 0,
+      "despues": 280
+    },
+    {
+      "id": 1065,
+      "antes": 0,
+      "despues": 20
+    },
+    {
+      "id": 1066,
+      "antes": 0,
+      "despues": 20
+    },
+    {
+      "id": 1067,
+      "antes": 0,
+      "despues": 20
+    },
+    {
+      "id": 1068,
+      "antes": 0,
+      "despues": 25
+    },
+    {
+      "id": 1069,
+      "antes": 0,
+      "despues": 120
+    },
+    {
+      "id": 1070,
+      "antes": 0,
+      "despues": 18
+    },
+    {
+      "id": 1071,
+      "antes": 0,
+      "despues": 3.75
+    },
+    {
+      "id": 1072,
+      "antes": 0,
+      "despues": 20
+    },
+    {
+      "id": 1073,
+      "antes": 0,
+      "despues": 25
+    },
+    {
+      "id": 1074,
+      "antes": 0,
+      "despues": 48.75
+    },
+    {
+      "id": 1075,
+      "antes": 0,
+      "despues": 25
+    },
+    {
+      "id": 1076,
+      "antes": 0,
+      "despues": 20
+    },
+    {
+      "id": 1077,
+      "antes": 0,
+      "despues": 180
+    },
+    {
+      "id": 1078,
+      "antes": 0,
+      "despues": 20
+    },
+    {
+      "id": 1079,
+      "antes": 0,
+      "despues": 257.5
+    },
+    {
+      "id": 1080,
+      "antes": 0,
+      "despues": 23.13
+    },
+    {
+      "id": 1081,
+      "antes": 0,
+      "despues": 20
+    },
+    {
+      "id": 1082,
+      "antes": 0,
+      "despues": 35
+    },
+    {
+      "id": 1083,
+      "antes": 0,
+      "despues": 17.5
+    },
+    {
+      "id": 1084,
+      "antes": 0,
+      "despues": 75
+    },
+    {
+      "id": 1085,
+      "antes": 0,
+      "despues": 15
+    },
+    {
+      "id": 1086,
+      "antes": 0,
+      "despues": 20
+    },
+    {
+      "id": 1087,
+      "antes": 0,
+      "despues": 50
+    },
+    {
+      "id": 1088,
+      "antes": 0,
+      "despues": 10
+    },
+    {
+      "id": 1089,
+      "antes": 0,
+      "despues": 10
+    },
+    {
+      "id": 1090,
+      "antes": 0,
+      "despues": 85
+    },
+    {
+      "id": 1091,
+      "antes": 0,
+      "despues": 15
+    },
+    {
+      "id": 1092,
+      "antes": 0,
+      "despues": 50
+    },
+    {
+      "id": 1093,
+      "antes": 0,
+      "despues": 40
+    },
+    {
+      "id": 1094,
+      "antes": 0,
+      "despues": 75
+    },
+    {
+      "id": 1095,
+      "antes": 0,
+      "despues": 25
+    },
+    {
+      "id": 1096,
+      "antes": 0,
+      "despues": 15.75
+    },
+    {
+      "id": 1097,
+      "antes": 0,
+      "despues": 20
+    },
+    {
+      "id": 1098,
+      "antes": 0,
+      "despues": 15
+    },
+    {
+      "id": 1099,
+      "antes": 0,
+      "despues": 50
+    },
+    {
+      "id": 1100,
+      "antes": 0,
+      "despues": 70
+    },
+    {
+      "id": 1101,
+      "antes": 0,
+      "despues": 60
+    },
+    {
+      "id": 1102,
+      "antes": 0,
+      "despues": 15
+    },
+    {
+      "id": 1103,
+      "antes": 0,
+      "despues": 12
+    },
+    {
+      "id": 1104,
+      "antes": 0,
+      "despues": 27
+    },
+    {
+      "id": 1105,
+      "antes": 0,
+      "despues": 20
+    },
+    {
+      "id": 1106,
+      "antes": 0,
+      "despues": 40
+    },
+    {
+      "id": 1107,
+      "antes": 0,
+      "despues": 20
+    },
+    {
+      "id": 1108,
+      "antes": 0,
+      "despues": 25
+    },
+    {
+      "id": 1109,
+      "antes": 0,
+      "despues": 10
+    },
+    {
+      "id": 1113,
+      "antes": 0,
+      "despues": 50
+    },
+    {
+      "id": 1129,
+      "antes": 0,
+      "despues": 20
+    }
+  ],
+  "habitacionesActualizadas": [
+    {
+      "id": 1090,
+      "despues": 50
+    },
+    {
+      "id": 1091,
+      "despues": 15
+    },
+    {
+      "id": 1092,
+      "despues": 30
+    },
+    {
+      "id": 1093,
+      "despues": 23
+    },
+    {
+      "id": 1094,
+      "despues": 18
+    },
+    {
+      "id": 1095,
+      "despues": 43
+    },
+    {
+      "id": 1096,
+      "despues": 25
+    },
+    {
+      "id": 1097,
+      "despues": 19
+    },
+    {
+      "id": 1098,
+      "despues": 7
+    },
+    {
+      "id": 1099,
+      "despues": 18
+    },
+    {
+      "id": 1100,
+      "despues": 18
+    },
+    {
+      "id": 1101,
+      "despues": 9
+    },
+    {
+      "id": 1102,
+      "despues": 16
+    },
+    {
+      "id": 1103,
+      "despues": 41
+    },
+    {
+      "id": 1104,
+      "despues": 16
+    },
+    {
+      "id": 1105,
+      "despues": 49
+    },
+    {
+      "id": 1106,
+      "despues": 65
+    },
+    {
+      "id": 1107,
+      "despues": 20
+    },
+    {
+      "id": 1108,
+      "despues": 18
+    },
+    {
+      "id": 1109,
+      "despues": 23
+    }
+  ],
+  "eliminados": [
+    {
+      "id": 1111,
+      "nombre": "1"
+    }
+  ],
+  "conflictos": []
+}

@@ -10,7 +10,8 @@ const Prediccion = sequelize.define('prediccion', {
     },
     id_hotel: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: true,
+        comment: 'NULL cuando la proyección es general (no de un hotel concreto)'
     },
     id_usuario: {
         type: DataTypes.INTEGER,

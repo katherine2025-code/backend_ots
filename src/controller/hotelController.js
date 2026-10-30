@@ -3,7 +3,9 @@ const Hotel = require('../models/Hotel');
 // Obtener todos los hoteles
 const obtenerTodos = async (req, res) => {
     try {
-        const hoteles = await Hotel.findAll();
+        const hoteles = await Hotel.findAll({
+            order: [['canton', 'ASC'], ['nombre', 'ASC']]
+        });
         res.json(hoteles);
     } catch (error) {
         console.error('Error al obtener hoteles:', error);

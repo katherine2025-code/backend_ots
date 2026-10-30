@@ -12,14 +12,14 @@ const obtenerTodas = async (req, res) => {
         const { limite = 10, hotelId, estado } = req.query;
 
         const where = {};
-        if (hotelId) where.hotel_id = hotelId;
+        if (hotelId) where.id_hotel = hotelId;
         if (estado) where.estado = estado;
 
         const predicciones = await Prediccion.findAll({
             where,
-            limit: parseInt(limite),
-            order: [['fecha_generacion', 'DESC']],
-            include: [{ model: Hotel, as: 'hotel', attributes: ['id_hotel', 'nombre'] }]
+            limit: parseInt(limite, 10) || 10,
+            order: [['fecha_generacion', 'DESC'], ['fecha', 'DESC']],
+            include: [{ model: Hotel, as: 'hotel', attributes: ['id_hotel', 'nombre', 'canton'], required: false }]
         });
 
         res.json(predicciones);
@@ -61,7 +61,7 @@ const obtenerMetricas = async (req, res) => {
         const respuesta = {
             predicciones_hoy: prediccionesHoy || 0,
             total_predicciones: totalPredicciones || 0,
-            precision_promedio: precisionPromedio || 85.0,
+            precision_promedio: precisionPromedio || 0,
             ml_disponible: true,
             mensaje: 'Métricas de predicciones',
             ultima_actualizacion: new Date().toISOString()
@@ -105,11 +105,86 @@ const crear = async (req, res) => {
     }
 };
 
+// El modelo del microservicio usa nombres con espacio ("Random Forest"), pero la
+// columna `modelo_utilizado` es un ENUM que solo admite RandomForest/XGBoost/Prophet.
+const MODELO_DB = {
+    'RandomForest': 'RandomForest',
+    'Random Forest': 'RandomForest',
+    'random forest': 'RandomForest',
+    'XGBoost': 'XGBoost',
+    'Prophet': 'Prophet'
+};
+const modeloParaBD = (nombre) => MODELO_DB[nombre] || 'RandomForest';
+
+// Convierte el rango de confianza del microservicio en columnas decimales válidas.
+const recortar = (valor) => {
+    const n = Number(valor);
+    if (!Number.isFinite(n)) return null;
+    return Math.round(Math.max(0, Math.min(100, n)) * 100) / 100;
+};
+
+/**
+ * Guarda en `predicciones` lo que acaba de calcular el microservicio, para que el
+ * Administrador y el Investigador puedan consultarlo en solo lectura.
+ *
+ * Se reemplazan las predicciones PENDIENTES de las mismas fechas (y del mismo hotel,
+ * o de la proyección general si idHotel es null) para que volver a generar no llene
+ * la tabla de filas repetidas. Las ya validadas/descartadas se conservan como historial.
+ */
+const persistirPredicciones = async ({ idUsuario, idHotel, filas, modelo, precision, rmse }) => {
+    if (!filas.length) return { guardadas: 0 };
+
+    const fechas = filas.map(f => f.fecha);
+    const where = { fecha: { [Op.in]: fechas }, estado: 'pendiente' };
+    if (idHotel) where.id_hotel = idHotel;
+    else where.id_hotel = null;
+    await Prediccion.destroy({ where });
+
+    const modeloBD = modeloParaBD(modelo);
+    const registros = filas.map(f => ({
+        id_usuario: idUsuario || null,
+        id_hotel: idHotel || null,
+        fecha: f.fecha,
+        ocupacion_predicha: f.ocupacion_predicha,
+        precision_modelo: recortar(precision),
+        modelo_utilizado: modeloBD,
+        intervalo_confianza_min: f.min ?? recortar(Number(f.ocupacion_predicha) - Number(rmse || 0)),
+        intervalo_confianza_max: f.max ?? recortar(Number(f.ocupacion_predicha) + Number(rmse || 0)),
+        estado: 'pendiente',
+        observaciones: 'Generada desde el módulo de Predicciones'
+    }));
+
+    await Prediccion.bulkCreate(registros);
+    return { guardadas: registros.length };
+};
+
 // Realizar predicción conectando con microservicio ML
 const predecir = async (req, res) => {
     try {
         const response = await axios.post(`${ML_URL}/predecir`, req.body, { headers: mlHeaders() });
-        res.json(response.data);
+        const datos = response.data;
+
+        // Persistencia best-effort: si falla el guardado, la predicción igual se devuelve.
+        let persistencia = { guardadas: 0 };
+        try {
+            persistencia = await persistirPredicciones({
+                idUsuario: req.usuario?.id_usuario,
+                idHotel: req.body?.id_hotel ? Number(req.body.id_hotel) : null,
+                filas: [{
+                    fecha: datos.fecha_objetivo,
+                    ocupacion_predicha: datos.ocupacion_predicha,
+                    min: datos.rango_prediccion?.minimo,
+                    max: datos.rango_prediccion?.maximo
+                }],
+                modelo: datos.modelo,
+                precision: datos.precision,
+                rmse: datos.error_estimado
+            });
+        } catch (dbError) {
+            console.error('No se pudo guardar la predicción en la BD:', dbError.message);
+        }
+
+        res.json({ ...datos, persistida: persistencia.guardadas > 0 });
     } catch (error) {
         console.error('Error al generar predicción:', error.message);
         const status = estadoErrorML(error);
@@ -125,7 +200,27 @@ const predecir = async (req, res) => {
 const predecirRango = async (req, res) => {
     try {
         const response = await axios.post(`${ML_URL}/predecir-rango`, req.body, { headers: mlHeaders() });
-        res.json(response.data);
+        const datos = response.data;
+
+        let persistencia = { guardadas: 0 };
+        try {
+            const diarias = (datos.predicciones_diarias || []).map(d => ({
+                fecha: d.fecha,
+                ocupacion_predicha: d.ocupacion_predicha
+            }));
+            persistencia = await persistirPredicciones({
+                idUsuario: req.usuario?.id_usuario,
+                idHotel: req.body?.id_hotel ? Number(req.body.id_hotel) : null,
+                filas: diarias,
+                modelo: datos.modelo_usado,
+                precision: datos.precision_modelo,
+                rmse: datos.rmse
+            });
+        } catch (dbError) {
+            console.error('No se pudo guardar la proyección en la BD:', dbError.message);
+        }
+
+        res.json({ ...datos, persistida: persistencia.guardadas > 0 });
     } catch (error) {
         console.error('Error al generar proyección por rango:', error.message);
         const status = estadoErrorML(error);
@@ -157,7 +252,12 @@ const entrenarModelo = async (req, res) => {
 const validar = async (req, res) => {
     try {
         const [updated] = await Prediccion.update(
-            { estado: 'validada', ...req.body },
+            {
+                estado: 'validada',
+                observaciones: req.body?.observaciones ?? null,
+                validada_por: req.usuario?.id_usuario ?? null,
+                fecha_validacion: new Date()
+            },
             { where: { id_prediccion: req.params.id } }
         );
         if (updated === 0) {
@@ -174,7 +274,12 @@ const validar = async (req, res) => {
 const descartar = async (req, res) => {
     try {
         const [updated] = await Prediccion.update(
-            { estado: 'descartada', ...req.body },
+            {
+                estado: 'descartada',
+                observaciones: req.body?.observaciones ?? null,
+                validada_por: req.usuario?.id_usuario ?? null,
+                fecha_validacion: new Date()
+            },
             { where: { id_prediccion: req.params.id } }
         );
         if (updated === 0) {
