@@ -19,9 +19,6 @@ const cargarArchivo = async (req, res) => {
         }
 
         const tipo = req.body.tipo;
-        console.log('\n Tipo de carga recibido:', tipo);
-        console.log(' Archivo:', req.file.originalname);
-        console.log(' Usuario:', req.usuario);
 
         if (!tipo) {
             return res.status(400).json({ error: 'El tipo de datos es obligatorio' });
@@ -29,10 +26,9 @@ const cargarArchivo = async (req, res) => {
 
         // Registrar inicio del proceso
         procesoId = await ETLProceso.iniciar(req.file.originalname, tipo, req.usuario?.id_usuario);
-        console.log(' Proceso registrado con ID:', procesoId);
+        console.log(`[ETL] Proceso ${procesoId} iniciado: tipo=${tipo} usuario=${req.usuario?.id_usuario}`);
 
         // Reenviar al microservicio Python
-        console.log(' Enviando archivo al microservicio Python...');
 
         const ext = path.extname(req.file.originalname).toLowerCase();
         const contentType = ext === '.xlsx'
@@ -55,8 +51,6 @@ const cargarArchivo = async (req, res) => {
             }
         );
 
-        console.log(' Respuesta del microservicio:', response.data);
-
         // Actualizar proceso
         const observaciones = [
             ...(response.data.advertencias || []),
@@ -72,7 +66,7 @@ const cargarArchivo = async (req, res) => {
             response.data.total_registros || 0
         );
 
-        console.log(`[ETL] Proceso ${procesoId} finalizado. Estado: COMPLETADO`);
+        console.log(`[ETL] Proceso ${procesoId} completado: ${response.data.registros_insertados || 0} insertados, ${response.data.registros_error || 0} con error`);
 
         // Eliminar archivo temporal
         if (fs.existsSync(req.file.path)) {
@@ -91,8 +85,9 @@ const cargarArchivo = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(' ERROR en cargarArchivo:', error.message);
-        console.error(' Detalles:', error.response?.data || error);
+        // Solo el mensaje y el status: la respuesta completa del microservicio puede traer filas del archivo
+        console.error(`[ETL] Proceso ${procesoId ?? '-'} falló: ${error.message}` +
+            (error.response ? ` (microservicio respondió ${error.response.status})` : ''));
 
         // Se propaga el status real que devolvió el microservicio Python
         // (400 = archivo/columnas inválidas, 500 = fallo interno/BD) en vez
@@ -174,7 +169,7 @@ const obtenerEstadisticasDatos = async (req, res) => {
 
         res.json(estado);
     } catch (error) {
-        console.error('Error obteniendo estado de procesos:', error);
+        console.error('Error obteniendo estado de procesos:', error.message);
         res.status(500).json({ error: error.message });
     }
 };
@@ -378,7 +373,7 @@ const obtenerDetallesProceso = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error obteniendo detalles:', error);
+        console.error('Error obteniendo detalles:', error.message);
         res.status(500).json({ error: error.message });
     }
 };

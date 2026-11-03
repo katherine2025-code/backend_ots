@@ -6,10 +6,6 @@ const verificarRol = (rolesPermitidos) => {
             });
         }
 
-        console.log('[RoleMiddleware] Usuario:', req.usuario.correo);
-        console.log('[RoleMiddleware] id_rol:', req.usuario.id_rol);
-        console.log('[RoleMiddleware] Roles permitidos:', rolesPermitidos);
-
         // Comparación flexible: acepta números o strings
         const userRol = req.usuario.id_rol;
         
@@ -30,11 +26,12 @@ const verificarRol = (rolesPermitidos) => {
         });
 
         if (tienePermiso) {
-            console.log('[RoleMiddleware]  Acceso permitido');
             return next();
         }
 
-        console.log('[RoleMiddleware]  Acceso denegado');
+        // Solo se registran los rechazos (son los que interesan para seguridad), con el ID
+        // del usuario en vez de su correo.
+        console.warn(`[Acceso denegado] usuario=${req.usuario.id_usuario} rol=${userRol} ${req.method} ${req.originalUrl.split('?')[0]}`);
         return res.status(403).json({
             error: 'No tiene permisos para esta acción'
         });

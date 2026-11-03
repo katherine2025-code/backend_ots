@@ -4,7 +4,7 @@ const manejarError = (res, error, mensaje) => {
     if (error instanceof encuestaService.ErrorValidacion) {
         return res.status(400).json({ error: error.message });
     }
-    console.error(`${mensaje}:`, error);
+    console.error(`${mensaje}:`, error.message);
     return res.status(500).json({ error: error.message });
 };
 

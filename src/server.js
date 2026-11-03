@@ -60,9 +60,15 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Logging simple
+// Log de peticiones: una línea al terminar, con método, ruta SIN parámetros de consulta
+// (?...), código de respuesta y duración. Sin datos personales; Dokploy ya agrega la hora.
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    const inicio = Date.now();
+    res.on('finish', () => {
+        // originalUrl: req.path cambia dentro de los routers montados (ej. /api/auth -> /login)
+        const ruta = req.originalUrl.split('?')[0];
+        console.log(`${req.method} ${ruta} ${res.statusCode} ${Date.now() - inicio}ms`);
+    });
     next();
 });
 
