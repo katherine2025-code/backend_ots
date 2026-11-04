@@ -148,7 +148,7 @@ const obtenerEstadisticas = async (req, res) => {
             gastoPorRubro
         });
     } catch (error) {
-        console.error('Error al obtener estadísticas de reportes:', error);
+        console.error('Error al obtener estadísticas de reportes:', error.message);
         res.status(500).json({ error: error.message });
     }
 };
@@ -161,7 +161,7 @@ const obtenerTodos = async (req, res) => {
         });
         res.json(reportes);
     } catch (error) {
-        console.error('Error al obtener reportes:', error);
+        console.error('Error al obtener reportes:', error.message);
         res.status(500).json({ error: error.message });
     }
 };
@@ -396,7 +396,7 @@ const obtenerTabulacion = async (req, res) => {
 
         res.json({ filtros, totalEncuestas, preguntas });
     } catch (error) {
-        console.error('Error al obtener tabulación de reportes:', error);
+        console.error('Error al obtener tabulación de reportes:', error.message);
         res.status(500).json({ error: error.message });
     }
 };

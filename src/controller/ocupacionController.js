@@ -68,7 +68,7 @@ const obtenerTodas = async (req, res) => {
             hotel: { nombre: f.hotel_nombre, parroquia: f.hotel_parroquia, canton: f.hotel_canton }
         })));
     } catch (error) {
-        console.error('Error al obtener ocupaciones:', error);
+        console.error('Error al obtener ocupaciones:', error.message);
         res.status(500).json({ error: error.message });
     }
 };
@@ -98,7 +98,7 @@ const obtenerFeriados = async (req, res) => {
             sinFeriado
         });
     } catch (error) {
-        console.error('Error al obtener feriados de ocupación:', error);
+        console.error('Error al obtener feriados de ocupación:', error.message);
         res.status(500).json({ error: error.message });
     }
 };
@@ -131,7 +131,7 @@ const obtenerEstadisticas = async (req, res) => {
             ultimos_30_dias: porDia.map(d => ({ fecha: d.fecha, ocupacion: parseFloat(d.ocupacion) }))
         });
     } catch (error) {
-        console.error('Error en estadísticas:', error);
+        console.error('Error en estadísticas:', error.message);
         res.status(500).json({ error: error.message });
     }
 };

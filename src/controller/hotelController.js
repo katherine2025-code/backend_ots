@@ -6,7 +6,7 @@ const obtenerTodos = async (req, res) => {
         const hoteles = await Hotel.findAll();
         res.json(hoteles);
     } catch (error) {
-        console.error('Error al obtener hoteles:', error);
+        console.error('Error al obtener hoteles:', error.message);
         res.status(500).json({ error: error.message });
     }
 };

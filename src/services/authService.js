@@ -20,20 +20,26 @@ const hashToken = (token) => crypto.createHash('sha256').update(token).digest('h
 // ==========================================
 // MÉTODO LOGIN
 // ==========================================
+// Logs: solo el ID del usuario y el motivo; nunca el correo, nombres ni la contraseña.
 const login = async (correo, password) => {
     try {
         const usuario = await Usuario.findOne({ where: { correo } });
 
         if (!usuario) {
+            console.warn('[Auth] Login fallido: correo no registrado');
             throw new Error('Credenciales incorrectas');
         }
 
+        // Verificar estado
         if (usuario.estado !== 1) {
+            console.warn(`[Auth] Login fallido: usuario=${usuario.id_usuario} inactivo`);
             throw new Error('Usuario inactivo. Contacta al administrador.');
         }
 
+        // Verificar contraseña
         const esValida = await bcrypt.compare(password, usuario.password_hash);
         if (!esValida) {
+            console.warn(`[Auth] Login fallido: usuario=${usuario.id_usuario} contraseña incorrecta`);
             throw new Error('Credenciales incorrectas');
         }
 
@@ -44,6 +50,8 @@ const login = async (correo, password) => {
             nombres: usuario.nombres,
             apellidos: usuario.apellidos
         });
+
+        console.log(`[Auth] Login correcto: usuario=${usuario.id_usuario}`);
 
         return {
             token,
@@ -65,13 +73,12 @@ const login = async (correo, password) => {
 // MÉTODO REGISTRAR
 // ==========================================
 const registrar = async (datos) => {
-
     const { nombres, apellidos, correo, password, id_rol } = datos;
 
-    const usuarioExistente = await Usuario.findOne({ 
-        where: { correo } 
+    const usuarioExistente = await Usuario.findOne({
+        where: { correo }
     });
-    
+
     if (usuarioExistente) {
         throw new Error('El correo ya está registrado');
     }
@@ -83,7 +90,7 @@ const registrar = async (datos) => {
     // registrándose: igual que Administrador (1), lo asigna un administrador desde /api/usuarios.
     const ROL_AUTOREGISTRO = 3;
     if (id_rol !== undefined && id_rol !== ROL_AUTOREGISTRO) {
-        console.warn(`[SERVICE] Registro pidió id_rol=${id_rol}; se asigna Encuestador (${ROL_AUTOREGISTRO}).`);
+        console.warn(`[Auth] Registro pidió id_rol=${id_rol}; se asigna Encuestador (${ROL_AUTOREGISTRO}).`);
     }
     const idRolFinal = ROL_AUTOREGISTRO;
 
@@ -95,6 +102,8 @@ const registrar = async (datos) => {
         id_rol: idRolFinal,
         estado: 1
     });
+
+    console.log(`[Auth] Registro: usuario=${usuario.id_usuario} creado`);
 
     return {
         usuario: {
@@ -120,7 +129,7 @@ const registrarBitacora = async (idUsuario, accion, modulo, ip) => {
             fecha: new Date()
         });
     } catch (error) {
-        console.error('[SERVICE] No se pudo registrar la bitácora:', error.message);
+        console.error('[Bitácora] No se pudo registrar:', error.message);
     }
 };
 
@@ -193,7 +202,7 @@ const resetearPassword = async (token, passwordNueva) => {
 // ==========================================
 const cambiarPassword = async (userId, passwordActual, passwordNueva) => {
     const usuario = await Usuario.findByPk(userId);
-    
+
     if (!usuario) {
         throw new Error('Usuario no encontrado');
     }

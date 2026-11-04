@@ -3,7 +3,6 @@ const { pool } = require('../config/db');
 const ETLProceso = {
     async iniciar(nombre_archivo, tipo_datos = null, id_usuario = null) {
         try {
-            console.log('[ETLProceso] Iniciando proceso:', nombre_archivo, tipo_datos);
 
             const [result] = await pool.query(
                 `INSERT INTO etl_procesos
@@ -12,17 +11,15 @@ const ETLProceso = {
                 [nombre_archivo, tipo_datos, id_usuario]
             );
 
-            console.log('[ETLProceso] Proceso creado con ID:', result.insertId);
             return result.insertId;
         } catch (error) {
-            console.error('[ETLProceso] Error en iniciar:', error);
+            console.error('[ETLProceso] Error en iniciar:', error.message);
             throw error;
         }
     },
 
     async finalizar(id, estado, exitosos, errores, observacion = null, procesados = null) {
         try {
-            console.log('[ETLProceso] Finalizando proceso:', id, estado);
 
             await pool.query(
                 `UPDATE etl_procesos
@@ -36,9 +33,8 @@ const ETLProceso = {
                 [estado, exitosos, errores, procesados ?? (exitosos + errores), observacion, id]
             );
 
-            console.log('[ETLProceso] Proceso finalizado');
         } catch (error) {
-            console.error('[ETLProceso] Error en finalizar:', error);
+            console.error('[ETLProceso] Error en finalizar:', error.message);
             throw error;
         }
     },
@@ -60,12 +56,11 @@ const ETLProceso = {
             sql += ' ORDER BY fecha_inicio DESC LIMIT ?, ?';
             params.push((pagina - 1) * limite, limite);
 
-            console.log('[ETLProceso] Consultando historial');
 
             const [rows] = await pool.query(sql, params);
             return rows;
         } catch (error) {
-            console.error('[ETLProceso] Error en obtenerHistorial:', error);
+            console.error('[ETLProceso] Error en obtenerHistorial:', error.message);
             throw error;
         }
     },
@@ -88,7 +83,7 @@ const ETLProceso = {
                 procesos_fallidos: fallidos[0].total
             };
         } catch (error) {
-            console.error('[ETLProceso] Error en obtenerEstadoProcesos:', error);
+            console.error('[ETLProceso] Error en obtenerEstadoProcesos:', error.message);
             throw error;
         }
     },
@@ -103,7 +98,7 @@ const ETLProceso = {
                 total_registros: total[0].total || 0
             };
         } catch (error) {
-            console.error('[ETLProceso] Error en obtenerEstadisticasDatos:', error);
+            console.error('[ETLProceso] Error en obtenerEstadisticasDatos:', error.message);
             throw error;
         }
     }

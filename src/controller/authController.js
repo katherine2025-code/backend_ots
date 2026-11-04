@@ -4,11 +4,11 @@ const login = async (req, res) => {
     try {
         const { correo, password } = req.body;
         const resultado = await authService.login(correo, password);
-        
+
         await authService.registrarBitacora(
-            resultado.usuario.id, 
-            'LOGIN', 
-            'auth', 
+            resultado.usuario.id,
+            'LOGIN',
+            'auth',
             req.ip
         );
 
@@ -47,12 +47,14 @@ const registro = async (req, res) => {
         });
 
     } catch (error) {
-        if (error.message.includes('ya existe')) {
+        if (error.message.includes('ya está registrado') || error.message.includes('ya existe')) {
             return res.status(400).json({ error: error.message });
         }
-        res.status(500).json({ error: 'Error interno al registrar el usuario' });
+        console.error('[Auth] Error en registro:', error.message);
+        res.status(500).json({ error: 'No se pudo completar el registro. Intenta de nuevo.' });
     }
 };
+
 const perfil = async (req, res) => {
     res.json({
         usuario: req.usuario
@@ -65,20 +67,20 @@ const cambiarPassword = async (req, res) => {
         const userId = req.usuario.id_usuario;
 
         if (!password_actual || !password_nueva) {
-            return res.status(400).json({ 
-                error: 'Ambas contraseñas son requeridas' 
+            return res.status(400).json({
+                error: 'Ambas contraseñas son requeridas'
             });
         }
 
         if (password_nueva.length < 6) {
-            return res.status(400).json({ 
-                error: 'La nueva contraseña debe tener al menos 6 caracteres' 
+            return res.status(400).json({
+                error: 'La nueva contraseña debe tener al menos 6 caracteres'
             });
         }
 
         const resultado = await authService.cambiarPassword(
-            userId, 
-            password_actual, 
+            userId,
+            password_actual,
             password_nueva
         );
 

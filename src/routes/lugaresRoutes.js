@@ -9,7 +9,7 @@ router.get('/mapa', autenticar, verificarRol([0, 1, 2]), async (req, res) => {
     try {
         res.json(await lugaresService.mapa());
     } catch (error) {
-        console.error('Error al obtener el mapa de lugares:', error);
+        console.error('Error al obtener el mapa de lugares:', error.message);
         res.status(500).json({ error: error.message });
     }
 });

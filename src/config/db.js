@@ -19,12 +19,8 @@ if (process.env.NODE_ENV === 'production' && !process.env.DB_PASSWORD) {
 }
 const DB_PASSWORD = process.env.DB_PASSWORD || '';
 
-console.log('Configuración de BD detectada (MySQL Local 8.0):');
-console.log(`   Host: ${DB_HOST}`);
-console.log(`   Puerto: ${DB_PORT}`);
-console.log(`   Usuario: ${DB_USER}`);
-console.log(`   Base de datos: ${DB_NAME}`);
-console.log('-----------------------------------');
+// Sin usuario ni host en los logs: solo la base a la que se conecta
+console.log(`[BD] Base de datos: ${DB_NAME}`);
 
 // 2. Configuración de Sequelize (para los Modelos)
 const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
@@ -56,16 +52,12 @@ const pool = mysql.createPool({
 async function connectDB() {
     try {
         await sequelize.authenticate();
-        console.log('Conexión Sequelize exitosa');
-
         await sequelize.sync({ alter: false });
-        console.log('Modelos sincronizados con la base de datos');
 
         const connection = await pool.getConnection();
-        console.log('Conexión Pool MySQL exitosa');
         connection.release();
 
-        console.log('Base de datos conectada correctamente\n');
+        console.log('[BD] Conectada');
         return true;
 
     } catch (error) {
