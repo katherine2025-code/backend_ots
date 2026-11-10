@@ -28,3 +28,30 @@ tabulación de ese feriado. "Todos" vuelve a mostrar el total.
 - Las encuestas recogidas por la **app** viven en `respuestas_encuestas` → fuente **"App"**
   (todas las preguntas). Para un feriado sin encuestas de la app, esa fuente sale vacía;
   es esperado, no un error.
+
+---
+
+# Descarga de datos limpios (auditoría de calidad)
+
+Fecha: 2026-11-10
+
+## Contexto
+Los encuestadores suben los archivos (CSV/XLSX) sin revisión; se confía en que el ETL
+los limpia. Revisando el archivo CRUDO de Noviembre se ven celdas vacías y "N/A", pero
+eso es el archivo de origen: el ETL **sí** limpia al insertar en la base
+(`ots_app_encuestas.py`): vacío/"N/A" en opción → `Prefiero no responder`; en escala/numérico
+→ `0`. El dato en la base ya está limpio. Faltaba una forma de **comprobarlo**.
+
+## Cambios
+
+| Archivo | Cambio | Motivo |
+|---|---|---|
+| `src/controller/etlController.js` | Nueva función `exportarDatosLimpios` (+ helper `filasACsv`): hace `SELECT *` de `encuestas_turisticas` (turista) u `ocupacion_hotelera` (hotel), filtrado por el rango del feriado elegido (mismo calendario/margen del sistema), y lo devuelve como CSV (separador `;`, BOM UTF-8 para Excel). | Permitir auditar la calidad de los datos ya limpios por feriado. |
+| `src/routes/etlRoutes.js` | Nueva ruta `GET /api/etl/exportar-limpio` (solo Super Admin). | Exponer la descarga. |
+| `../ots_front/src/app/core/services/etl.service.ts` | Nuevo `descargarDatosLimpios(tipo, feriado?)` (responseType blob). | Llamar al endpoint y descargar. |
+| `../ots_front/src/app/pages/etl/etl.page.ts` | Props `expTipo`, `expFeriado`, `feriadosLista`, `descargandoCsv` + método `descargarCsvLimpio()`. | Lógica del selector y la descarga. |
+| `../ots_front/src/app/pages/etl/etl.page.html` | Tarjeta "Descargar datos limpios (CSV)" en la pestaña **Historial**: selector de tipo + feriado y botón de descarga. | UI pedida: descargar CSV limpio por feriado desde el historial ETL. |
+
+## Resultado
+En ETL → pestaña **Historial** → "Descargar datos limpios (CSV)": se elige tipo
+(Turística / Ocupación) y feriado (o "Todos"), y se descarga el CSV limpio desde la base.

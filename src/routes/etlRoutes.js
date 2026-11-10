@@ -33,6 +33,9 @@ router.get('/estadisticas', autenticar, verificarRol([0]), etlController.obtener
 router.get('/tipos-datos', autenticar, verificarRol([0]), etlController.obtenerTiposDatos);
 router.get('/detalles/:id', autenticar, verificarRol([0]), etlController.obtenerDetallesProceso);
 
+// Descargar CSV de datos ya limpios (sin vacíos) por tipo (turista/hotel) y feriado opcional
+router.get('/exportar-limpio', autenticar, verificarRol([0]), etlController.exportarDatosLimpios);
+
 // Quitar del historial una carga fallida (solo estado ERROR, ver eliminarRegistro)
 router.delete('/registro/:id', autenticar, verificarRol([0]), etlController.eliminarRegistro);
 

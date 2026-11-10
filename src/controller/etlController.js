@@ -6,6 +6,7 @@ const path = require('path');
 const db = require('../config/db');
 const { ML_SERVICE_URL, mlHeaders, estadoErrorML } = require('../config/mlService');
 const bitacoraService = require('../services/bitacoraService');
+const { MARGEN_ANALISIS_DIAS } = require('../utils/feriados');
 
 /**
  * Cargar archivo CSV y reenviarlo al microservicio Python
@@ -440,6 +441,68 @@ const eliminarRegistro = async (req, res) => {
 };
 
 // ==========================================
+// EXPORTAR DATOS LIMPIOS (CSV) PARA AUDITORÍA
+// ==========================================
+// Convierte las filas (objetos planos) a texto CSV con separador ';' (el que abre bien el
+// Excel en español). Escapa comillas/;/saltos de línea y deja vacío los nulos. Encabezado =
+// nombres de columna de la tabla.
+function filasACsv(filas) {
+    if (!filas.length) return '';
+    const columnas = Object.keys(filas[0]);
+    const escapar = (v) => {
+        if (v === null || v === undefined) return '';
+        let s = (v instanceof Date) ? v.toISOString().slice(0, 19).replace('T', ' ') : String(v);
+        if (/[";\r\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+        return s;
+    };
+    const lineas = [columnas.join(';')];
+    for (const f of filas) lineas.push(columnas.map((c) => escapar(f[c])).join(';'));
+    return lineas.join('\r\n');
+}
+
+// GET /api/etl/exportar-limpio?tipo=turista|hotel&feriado=<nombre>
+// Descarga, como CSV, los datos YA LIMPIOS que el ETL insertó en la base (sin vacíos: los no
+// respondidos quedaron como 'Prefiero no responder' o 0). Sirve para auditar la calidad de los
+// datos de cada feriado. 'feriado' es opcional; sin él exporta todo el tipo elegido.
+const exportarDatosLimpios = async (req, res) => {
+    try {
+        const tipo = req.query.tipo === 'hotel' ? 'hotel' : 'turista';
+        const feriado = req.query.feriado || null;
+        const tabla = tipo === 'hotel' ? 'ocupacion_hotelera' : 'encuestas_turisticas';
+        const colFecha = tipo === 'hotel' ? 'fecha' : 'fecha_encuesta';
+
+        let sql = `SELECT * FROM ${tabla}`;
+        const replacements = {};
+        if (feriado) {
+            // Mismo calendario + margen que usan Ocupación y Reportes (ver utils/feriados.js).
+            sql += ` WHERE ${colFecha} BETWEEN
+                (SELECT DATE_SUB(fecha_inicio, INTERVAL ${MARGEN_ANALISIS_DIAS} DAY) FROM feriados WHERE nombre = :feriado)
+                AND (SELECT DATE_ADD(fecha_fin, INTERVAL ${MARGEN_ANALISIS_DIAS} DAY) FROM feriados WHERE nombre = :feriado)`;
+            replacements.feriado = feriado;
+        }
+        sql += ` ORDER BY ${colFecha} ASC`;
+
+        const [filas] = await db.sequelize.query(sql, { replacements });
+
+        const etiqueta = (feriado || 'todos')
+            .normalize('NFD').replace(/[̀-ͯ]/g, '')  // quitar acentos
+            .replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '').toLowerCase();
+        const nombreArchivo = `datos_limpios_${tipo}_${etiqueta}.csv`;
+
+        const cuerpo = filas.length
+            ? filasACsv(filas)
+            : `Sin datos para el filtro seleccionado (tipo=${tipo}${feriado ? `, feriado=${feriado}` : ''}).`;
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+        res.send('﻿' + cuerpo);  // BOM: para que Excel muestre bien los acentos
+    } catch (error) {
+        console.error('[ETL] Error al exportar datos limpios:', error.message);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ==========================================
 // EXPORTAR TODAS LAS FUNCIONES
 // ==========================================
 module.exports = {
@@ -450,5 +513,6 @@ module.exports = {
     obtenerTiposDatos,
     obtenerDetallesProceso,
     obtenerLogsErrores,
-    eliminarRegistro
+    eliminarRegistro,
+    exportarDatosLimpios
 };
