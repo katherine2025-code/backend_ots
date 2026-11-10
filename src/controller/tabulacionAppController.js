@@ -6,6 +6,20 @@ const { Op } = require('sequelize');
 const Encuesta = require('../models/Encuesta');
 const EncuestaPregunta = require('../models/EncuestaPregunta');
 const RespuestaEncuesta = require('../models/RespuestaEncuesta');
+const { MARGEN_ANALISIS_DIAS } = require('../utils/feriados');
+
+// Convierte un feriado (por nombre) a su rango de fechas [inicio, fin] usando la tabla
+// `feriados` + el mismo margen de análisis que usan Ocupación y el resto de Reportes, para
+// que "Carnaval" signifique lo mismo en toda la app. Devuelve null si el feriado no existe.
+async function rangoDeFeriado(nombre) {
+    const [filas] = await Encuesta.sequelize.query(
+        `SELECT DATE_FORMAT(DATE_SUB(fecha_inicio, INTERVAL :m DAY), '%Y-%m-%d') AS ini,
+                DATE_FORMAT(DATE_ADD(fecha_fin,   INTERVAL :m DAY), '%Y-%m-%d') AS fin
+         FROM feriados WHERE nombre = :nombre LIMIT 1`,
+        { replacements: { m: MARGEN_ANALISIS_DIAS, nombre } }
+    );
+    return filas.length ? filas[0] : null;
+}
 
 const redondear1 = (n) => Math.round(n * 10) / 10;
 const CATEGORICAS = new Set(['select', 'multiselect', 'escala']);
@@ -26,7 +40,7 @@ function normalizarOpciones(opciones) {
 const obtenerTabulacionApp = async (req, res) => {
     try {
         const tipo = req.query.tipo === 'hotel' ? 'hotel' : 'turista';
-        const { fechaInicio, fechaFin } = req.query;
+        const { fechaInicio, fechaFin, feriado } = req.query;
 
         // Cuestionario vigente de ese tipo (hay uno por tipo: Encuesta.tipo es unique).
         const encuesta = await Encuesta.findOne({ where: { tipo } });
@@ -37,11 +51,27 @@ const obtenerTabulacionApp = async (req, res) => {
             order: [['orden', 'ASC']]
         });
 
+        // Filtro por fecha: se combinan (intersectan) el rango del feriado elegido y el rango
+        // de fechas explícito; se toma el límite más estrecho de cada lado. Si eligió un feriado
+        // que no existe en la tabla, no hay datos que mostrar para ese feriado.
+        const limitesInf = [];
+        const limitesSup = [];
+        if (feriado) {
+            const rango = await rangoDeFeriado(feriado);
+            if (!rango) {
+                return res.json({ tipo, encuesta: encuesta.nombre, feriado, total: 0, secciones: [] });
+            }
+            limitesInf.push(`${rango.ini} 00:00:00`);
+            limitesSup.push(`${rango.fin} 23:59:59`);
+        }
+        if (fechaInicio) limitesInf.push(`${fechaInicio} 00:00:00`);
+        if (fechaFin) limitesSup.push(`${fechaFin} 23:59:59`);
+
         const where = { id_encuesta: encuesta.id_encuesta };
-        if (fechaInicio || fechaFin) {
+        if (limitesInf.length || limitesSup.length) {
             where.fecha_encuesta = {};
-            if (fechaInicio) where.fecha_encuesta[Op.gte] = `${fechaInicio} 00:00:00`;
-            if (fechaFin) where.fecha_encuesta[Op.lte] = `${fechaFin} 23:59:59`;
+            if (limitesInf.length) where.fecha_encuesta[Op.gte] = limitesInf.sort().pop();   // cota inferior más alta
+            if (limitesSup.length) where.fecha_encuesta[Op.lte] = limitesSup.sort()[0];       // cota superior más baja
         }
         const respuestas = await RespuestaEncuesta.findAll({ where, attributes: ['respuestas'] });
         const total = respuestas.length;
@@ -113,7 +143,7 @@ const obtenerTabulacionApp = async (req, res) => {
         }
 
         const secciones = [...porSeccion.entries()].map(([seccion, preguntas]) => ({ seccion, preguntas }));
-        res.json({ tipo, encuesta: encuesta.nombre, total, secciones });
+        res.json({ tipo, encuesta: encuesta.nombre, feriado: feriado || null, total, secciones });
     } catch (error) {
         console.error('Error en tabulación de la app:', error.message);
         res.status(500).json({ error: error.message });
