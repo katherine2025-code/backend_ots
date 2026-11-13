@@ -88,11 +88,13 @@ const obtenerEstadisticas = async (req, res) => {
             LIMIT 8
         `, { replacements: encuestasFiltro.replacements });
 
-        // Gasto promedio por feriado: se ignora el filtro de feriado (si lo hay) porque el
-        // propósito de este gráfico es comparar entre feriados, no mostrar solo uno.
+        // Gasto promedio por feriado: si el usuario eligió un feriado, se muestra SOLO ese; con
+        // "Todos" se comparan todos los feriados. El filtro por feriado lo aplica el rango de cada
+        // barra (subconsulta de abajo), por eso aquí se usa el filtro SIN feriado (fechas/año sí).
         const filtroSinFeriado = construirFiltroFecha('fecha_encuesta', { ...filtros, feriado: null });
+        const feriadosGrafico = filtros.feriado ? [filtros.feriado] : NOMBRES_FERIADOS;
         const gastoPorFeriado = [];
-        for (const nombre of NOMBRES_FERIADOS) {
+        for (const nombre of feriadosGrafico) {
             const [[fila]] = await sequelize.query(`
                 SELECT AVG(gasto_total) AS gasto_promedio, COUNT(*) AS total
                 FROM encuestas_turisticas
