@@ -88,11 +88,13 @@ const obtenerEstadisticas = async (req, res) => {
             LIMIT 8
         `, { replacements: encuestasFiltro.replacements });
 
-        // Gasto promedio por feriado: se ignora el filtro de feriado (si lo hay) porque el
-        // propósito de este gráfico es comparar entre feriados, no mostrar solo uno.
+        // Gasto promedio por feriado: si el usuario eligió un feriado, se muestra SOLO ese; con
+        // "Todos" se comparan todos los feriados. El filtro por feriado lo aplica el rango de cada
+        // barra (subconsulta de abajo), por eso aquí se usa el filtro SIN feriado (fechas/año sí).
         const filtroSinFeriado = construirFiltroFecha('fecha_encuesta', { ...filtros, feriado: null });
+        const feriadosGrafico = filtros.feriado ? [filtros.feriado] : NOMBRES_FERIADOS;
         const gastoPorFeriado = [];
-        for (const nombre of NOMBRES_FERIADOS) {
+        for (const nombre of feriadosGrafico) {
             const [[fila]] = await sequelize.query(`
                 SELECT AVG(gasto_total) AS gasto_promedio, COUNT(*) AS total
                 FROM encuestas_turisticas
@@ -166,14 +168,12 @@ const obtenerTodos = async (req, res) => {
     }
 };
 
-// Preguntas tabulables de la Encuesta Turística que SÍ tienen columna propia en
-// encuestas_turisticas (13 de las 37 del cuestionario - las otras 24 aún no las extrae el ETL,
-// ver kobo_encuestas_turismo.py). Cada una define:
+// Preguntas de la Encuesta Turística que se tabulan desde encuestas_turisticas. Cada una define:
 //  - columna: la columna real en encuestas_turisticas.
-//  - esDefault(valor): identifica cuándo ese valor es el "relleno" que usa el ETL cuando NO pudo
-//    leer la pregunta en el archivo original (0 para numéricas, 'Prefiero no responder' para
-//    texto - la MISMA cadena que una respuesta real, ver kobo_encuestas_turismo.py líneas
-//    321-328). Sin esto, esas filas se contarían como si el turista hubiera respondido eso.
+//  - esDefault(valor): identifica cuándo ese valor es el "relleno" que usa la importación cuando
+//    NO pudo leer la pregunta en el archivo original (0 para numéricas, 'Prefiero no responder'
+//    para texto - la MISMA cadena que una respuesta real). Sin esto, esas filas se contarían como
+//    si el turista hubiera respondido eso.
 //  - bucket(valor): agrupa el valor crudo en la categoría que se muestra (por ejemplo, edad
 //    puntual -> rango etario). Si no se define, se usa el valor tal cual.
 // Valores de texto "sucios" encontrados en más de un campo (pais_residencia, motivo_visita):
@@ -190,6 +190,14 @@ const esTextoSucio = v => v === null || v === undefined || v === ''
 // muestren 1→5 aunque falte alguna opción.
 const ORDEN_1_5 = ['1', '2', '3', '4', '5'];
 const esDefaultEscala = v => !v || v === 0;
+
+// Gasto por rubro: la importación guarda el monto medio del rango elegido. Se revierte el monto a
+// su rango para tabularlo como categoría. El 0 es ambiguo (puede ser "sin gasto" o sin respuesta),
+// así que se cuenta como "sin dato" para no inflar el porcentaje de ninguna categoría.
+const RANGO_GASTO = { '10': 'Menos de $20', '35': 'De $21 a $50', '75': 'De $51 a $100', '150': 'Más de $100', '250': 'Más de $200' };
+const ORDEN_GASTO = ['Menos de $20', 'De $21 a $50', 'De $51 a $100', 'Más de $100', 'Más de $200'];
+const esDefaultGasto = v => !(String(Math.round(Number(v))) in RANGO_GASTO);
+const bucketGasto = v => RANGO_GASTO[String(Math.round(Number(v)))];
 
 const PREGUNTAS_TABULABLES = [
     // ===== Sección A: Perfil Sociodemográfico =====
@@ -238,6 +246,10 @@ const PREGUNTAS_TABULABLES = [
         multiple: true, limite: 12
     },
     {
+        seccion: 'Planeación del Viaje', columna: 'lugares_visitados', titulo: 'Lugares que visitó o piensa visitar (opción múltiple)',
+        multiple: true, limite: 16
+    },
+    {
         seccion: 'Planeación del Viaje', columna: 'noches_estadia', titulo: 'Noches de hospedaje',
         esDefault: v => v === null || v === undefined || v === 0
     },
@@ -265,6 +277,30 @@ const PREGUNTAS_TABULABLES = [
     {
         seccion: 'Estructura de Consumo', columna: 'transporte_destino', titulo: 'Medios de traslado en el destino (opción múltiple)',
         multiple: true, limite: 12
+    },
+    {
+        seccion: 'Estructura de Consumo', columna: 'gasto_alojamiento', titulo: 'Gasto diario por persona en alojamiento',
+        esDefault: esDefaultGasto, bucket: bucketGasto, orden: ORDEN_GASTO
+    },
+    {
+        seccion: 'Estructura de Consumo', columna: 'gasto_alimentacion', titulo: 'Gasto diario por persona en alimentación',
+        esDefault: esDefaultGasto, bucket: bucketGasto, orden: ORDEN_GASTO
+    },
+    {
+        seccion: 'Estructura de Consumo', columna: 'gasto_transporte', titulo: 'Gasto diario en transporte interno',
+        esDefault: esDefaultGasto, bucket: bucketGasto, orden: ORDEN_GASTO
+    },
+    {
+        seccion: 'Estructura de Consumo', columna: 'gasto_entretenimiento', titulo: 'Gasto diario en entretenimiento, ocio y cultura',
+        esDefault: esDefaultGasto, bucket: bucketGasto, orden: ORDEN_GASTO
+    },
+    {
+        seccion: 'Estructura de Consumo', columna: 'gasto_compras', titulo: 'Gasto diario en compras (ropa, calzado, artículos personales)',
+        esDefault: esDefaultGasto, bucket: bucketGasto, orden: ORDEN_GASTO
+    },
+    {
+        seccion: 'Estructura de Consumo', columna: 'gasto_recuerdos', titulo: 'Gasto diario en recuerdos, souvenirs y artesanías',
+        esDefault: esDefaultGasto, bucket: bucketGasto, orden: ORDEN_GASTO
     },
     {
         seccion: 'Estructura de Consumo', columna: 'rubro_mayor_gasto', titulo: 'Rubro en el que está dispuesto a gastar más',
