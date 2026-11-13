@@ -120,12 +120,27 @@ const startServer = async () => {
         await connectDB();
         console.log('✅ Base de datos conectada correctamente');
 
-        await require('./services/esquemaService').asegurarEsquema();
-        await require('./services/respuestaService').asegurarEsquema();
-        await require('./services/encuestaService').sembrarSiVacio();
-        await require('./services/encuestaService').actualizarCuestionarioHotel();
-        await require('./services/encuestaService').actualizarCuestionarioTurista();
-        await require('./services/encuestaService').actualizarOpcionesFeriado();
+        // Tareas de arranque NO críticas (migraciones suaves + sincronización del cuestionario).
+        // Si alguna falla, se registra con detalle pero NO se tumba el servidor: la API debe seguir
+        // sirviendo los datos existentes aunque una sincronización puntual falle.
+        const tareasArranque = [
+            ['esquema', () => require('./services/esquemaService').asegurarEsquema()],
+            ['respuestas', () => require('./services/respuestaService').asegurarEsquema()],
+            ['sembrar cuestionarios', () => require('./services/encuestaService').sembrarSiVacio()],
+            ['cuestionario hotel', () => require('./services/encuestaService').actualizarCuestionarioHotel()],
+            ['cuestionario turista', () => require('./services/encuestaService').actualizarCuestionarioTurista()],
+            ['opciones feriado', () => require('./services/encuestaService').actualizarOpcionesFeriado()],
+        ];
+        for (const [nombre, tarea] of tareasArranque) {
+            try {
+                await tarea();
+            } catch (e) {
+                const detalle = e && Array.isArray(e.errors)
+                    ? e.errors.map(x => `${x.path}=${JSON.stringify(x.value)} (${x.message})`).join('; ')
+                    : '';
+                console.error(`⚠️  Tarea de arranque "${nombre}" falló (se continúa):`, e.message, detalle);
+            }
+        }
 
         app.listen(PORT, () => {
             console.log('\n=================================');
