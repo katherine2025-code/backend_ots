@@ -76,6 +76,30 @@ de ocupación), por eso no aparecen como tabulación de preguntas.
 
 ---
 
+# Arranque del backend: una tarea de sincronización ya no tumba el servidor
+
+Fecha: 2026-11-13
+
+## Problema
+Tras el reinicio de datos, al redeployar, el backend NO arrancaba:
+`❌ Error al iniciar servidor: Validation error` → `process.exit(1)`. La base conectaba bien
+(`✅ Base de datos conectada correctamente`), pero una de las tareas de arranque que sincronizan
+el cuestionario (`encuestaService.actualizar...` / `sembrarSiVacio`) lanzaba un error de
+validación de Sequelize y, al no estar protegida, tumbaba TODO el servidor. En el navegador se
+veía como errores de CORS / `net::ERR_FAILED` (síntoma de backend caído, no la causa).
+
+## Cambio
+
+| Archivo | Cambio | Motivo |
+|---|---|---|
+| `src/server.js` | Las 6 tareas de arranque (esquema, respuestas, sembrar, cuestionario hotel/turista, opciones feriado) se ejecutan en un bucle con `try/catch` individual: si una falla, se registra con detalle (`campo=valor (mensaje)`) y el servidor **arranca igual**. | Una sincronización puntual nunca debe tumbar la API; además el log detallado permite ver qué validación falló para corregir la causa de raíz. |
+
+## Pendiente (no urgente, con el sistema ya arriba)
+Revisar el `⚠️ Tarea de arranque "..." falló (se continúa): ...` en los logs para corregir la causa
+raíz del error de validación (qué campo/valor del cuestionario lo dispara).
+
+---
+
 # Reportes: todas las preguntas turísticas + se elimina "Kobo" y el aviso amarillo
 
 Fecha: 2026-11-11
