@@ -24,6 +24,14 @@ async function rangoDeFeriado(nombre) {
 const redondear1 = (n) => Math.round(n * 10) / 10;
 const CATEGORICAS = new Set(['select', 'multiselect', 'escala']);
 
+// Secciones cuyo texto libre NO se tabula (son identificadores, no respuestas de análisis:
+// cédula del encuestador, nombre/dirección/correo/teléfono del establecimiento, etc.).
+const SECCIONES_SIN_TEXTO = new Set(['Datos del Encuestador', 'Identificación del Establecimiento']);
+// Un campo de texto libre SÍ se tabula (como frecuencia de lo que escribió la gente) cuando es
+// una respuesta de análisis, p. ej. "país/lugar de residencia". Se limita a los más frecuentes.
+const esTextoTabulable = (p) => p.tipo === 'text' && !SECCIONES_SIN_TEXTO.has(p.seccion);
+const LIMITE_TEXTO_LIBRE = 12;
+
 // Las opciones de una pregunta pueden venir como ["a","b"] o [{valor|etiqueta|texto}];
 // se normalizan a una lista de strings para respetar su orden en la tabulación.
 function normalizarOpciones(opciones) {
@@ -115,7 +123,7 @@ const obtenerTabulacionApp = async (req, res) => {
                 promedio: null
             };
 
-            if (CATEGORICAS.has(p.tipo)) {
+            if (CATEGORICAS.has(p.tipo) || esTextoTabulable(p)) {
                 // % sobre los ENCUESTADOS que respondieron (en multiselect la suma puede pasar de 100)
                 let opciones = Object.entries(conteos).map(([etiqueta, totalc]) => ({
                     etiqueta,
@@ -131,7 +139,9 @@ const obtenerTabulacionApp = async (req, res) => {
                     const extra = opciones.filter((o) => !definidas.includes(o.etiqueta)).sort((a, b) => b.total - a.total);
                     opciones = [...enOrden, ...extra];
                 } else {
+                    // Texto libre (p. ej. residencia): se muestran los valores más frecuentes.
                     opciones.sort((a, b) => b.total - a.total);
+                    if (esTextoTabulable(p)) opciones = opciones.slice(0, LIMITE_TEXTO_LIBRE);
                 }
                 item.opciones = opciones;
             } else if (p.tipo === 'number' && numeros.length) {
