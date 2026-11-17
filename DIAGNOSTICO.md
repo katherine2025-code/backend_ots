@@ -3,6 +3,34 @@
 Rama: `feat/tabulacion-app`
 Fecha: 2026-11-10
 
+---
+
+## Actualización 2026-11-17 — El reporte usa la encuesta final (datos de la app)
+
+### Problema
+El PDF/reporte de noviembre **no coincidía con la encuesta final** aplicada: la tabulación
+turística leía de `encuestas_turisticas` (tabla del ETL, llenada desde archivos con formato
+viejo). Síntomas: aparecía "Menor de 18 años" (la final empieza en "18 a 24"), "Lugares que
+visitó" sin datos, satisfacción como "1-5" sin etiqueta, Sección D confusa, género
+"Femenino/Masculino" en vez de "Hombre/Mujer". Se confirmó por SQL que los **1927 turística y
+74 hotel de noviembre SÍ están en `respuestas_encuestas`** (la app = encuesta final).
+
+### Cambios
+
+| Archivo | Cambio | Motivo |
+|---|---|---|
+| `../ots_front/src/app/pages/reportes/reportes.page.ts` | `cargarTabulacion()` ahora tabula **ambas** encuestas (turística y hotel) desde `getTabulacionApp` (datos de la app); se eliminó el camino que leía de `encuestas_turisticas` (ETL). | Que el reporte refleje la encuesta final aplicada; corrige de raíz observaciones #1,#2,#4,#5,#6. |
+| `../ots_front/src/app/pages/reportes/reportes.page.ts` | En `aplanarTabulacionApp`, la pregunta `pais_residencia` se muestra con el título "Lugar de residencia habitual". | Es texto libre (la gente escribió ciudades además de países); título honesto sin alterar la encuesta (#3). |
+| `src/controller/tabulacionAppController.js` | Se tabula el **texto libre** de análisis (p. ej. residencia) como frecuencia de los valores más escritos (top 12), excluyendo las secciones de identificación (cédula, datos del establecimiento). | Conservar el dato de origen de los turistas (p. ej. % nacional) sin exponer identificadores (#3). |
+
+### Resultado
+El reporte turístico y el de establecimientos de alojamiento se tabulan desde la encuesta
+final (app). La encuesta de hoteles se genera con su propio PDF desde la pestaña
+"Establecimiento de alojamiento".
+
+---
+
+
 ## Problema
 En Reportes, al elegir un feriado en el filtro, la **tabulación por pregunta** no se
 filtraba por ese feriado cuando la fuente era "App" (datos de `respuestas_encuestas`):
@@ -73,6 +101,30 @@ Fecha: 2026-11-10
 La tabulación hotelera sale de `respuestas_encuestas` (encuesta de hotel de la **app**). Los
 archivos de establecimiento cargados por **Kobo/ETL** van a `ocupacion_hotelera` (solo números
 de ocupación), por eso no aparecen como tabulación de preguntas.
+
+---
+
+# Arranque del backend: una tarea de sincronización ya no tumba el servidor
+
+Fecha: 2026-11-13
+
+## Problema
+Tras el reinicio de datos, al redeployar, el backend NO arrancaba:
+`❌ Error al iniciar servidor: Validation error` → `process.exit(1)`. La base conectaba bien
+(`✅ Base de datos conectada correctamente`), pero una de las tareas de arranque que sincronizan
+el cuestionario (`encuestaService.actualizar...` / `sembrarSiVacio`) lanzaba un error de
+validación de Sequelize y, al no estar protegida, tumbaba TODO el servidor. En el navegador se
+veía como errores de CORS / `net::ERR_FAILED` (síntoma de backend caído, no la causa).
+
+## Cambio
+
+| Archivo | Cambio | Motivo |
+|---|---|---|
+| `src/server.js` | Las 6 tareas de arranque (esquema, respuestas, sembrar, cuestionario hotel/turista, opciones feriado) se ejecutan en un bucle con `try/catch` individual: si una falla, se registra con detalle (`campo=valor (mensaje)`) y el servidor **arranca igual**. | Una sincronización puntual nunca debe tumbar la API; además el log detallado permite ver qué validación falló para corregir la causa de raíz. |
+
+## Pendiente (no urgente, con el sistema ya arriba)
+Revisar el `⚠️ Tarea de arranque "..." falló (se continúa): ...` en los logs para corregir la causa
+raíz del error de validación (qué campo/valor del cuestionario lo dispara).
 
 ---
 
