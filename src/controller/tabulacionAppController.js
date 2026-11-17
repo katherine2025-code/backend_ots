@@ -59,12 +59,16 @@ const obtenerTabulacionApp = async (req, res) => {
             order: [['orden', 'ASC']]
         });
 
-        // Filtro por fecha: se combinan (intersectan) el rango del feriado elegido y el rango
-        // de fechas explícito; se toma el límite más estrecho de cada lado. Si eligió un feriado
-        // que no existe en la tabla, no hay datos que mostrar para ese feriado.
+        // El filtro por feriado funciona distinto según el tipo de encuesta:
+        // - HOTEL: el establecimiento ELIGE sobre qué feriado reporta (pregunta "feriado"),
+        //   así que se filtra por ese campo de la respuesta, NO por la fecha en que se llenó
+        //   (si no, se perdían hoteles que registraron el feriado unos días antes/después).
+        // - TURISTA: no hay campo de feriado, así que se usa el rango de fechas del feriado.
+        const esHotel = tipo === 'hotel';
+
         const limitesInf = [];
         const limitesSup = [];
-        if (feriado) {
+        if (feriado && !esHotel) {
             const rango = await rangoDeFeriado(feriado);
             if (!rango) {
                 return res.json({ tipo, encuesta: encuesta.nombre, feriado, total: 0, secciones: [] });
@@ -81,7 +85,13 @@ const obtenerTabulacionApp = async (req, res) => {
             if (limitesInf.length) where.fecha_encuesta[Op.gte] = limitesInf.sort().pop();   // cota inferior más alta
             if (limitesSup.length) where.fecha_encuesta[Op.lte] = limitesSup.sort()[0];       // cota superior más baja
         }
-        const respuestas = await RespuestaEncuesta.findAll({ where, attributes: ['respuestas'] });
+        let respuestas = await RespuestaEncuesta.findAll({ where, attributes: ['respuestas'] });
+
+        // HOTEL + feriado: quedarse con las respuestas cuyo feriado reportado coincide.
+        if (feriado && esHotel) {
+            const objetivo = String(feriado).trim().toLowerCase();
+            respuestas = respuestas.filter(r => String(r.respuestas?.feriado || '').trim().toLowerCase() === objetivo);
+        }
         const total = respuestas.length;
 
         const porSeccion = new Map();
