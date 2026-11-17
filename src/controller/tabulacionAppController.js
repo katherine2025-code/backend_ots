@@ -7,6 +7,7 @@ const Encuesta = require('../models/Encuesta');
 const EncuestaPregunta = require('../models/EncuestaPregunta');
 const RespuestaEncuesta = require('../models/RespuestaEncuesta');
 const { MARGEN_ANALISIS_DIAS } = require('../utils/feriados');
+const { normalizarResidencia } = require('../utils/normalizarResidencia');
 
 // Convierte un feriado (por nombre) a su rango de fechas [inicio, fin] usando la tabla
 // `feriados` + el mismo margen de análisis que usan Ocupación y el resto de Reportes, para
@@ -101,6 +102,10 @@ const obtenerTabulacionApp = async (req, res) => {
             let respondidas = 0;
             const numeros = [];
 
+            // La residencia es texto libre: se unifica a país canónico (Ecuador/ECUADOR/ecuador →
+            // "Ecuador"; ciudades como Cuenca/Guayaquil/Salinas → "Ecuador") para no fragmentar el %.
+            const esResidencia = p.codigo === 'pais_residencia' || /residencia/i.test(p.codigo);
+
             for (const r of respuestas) {
                 const data = r.respuestas || {};
                 const v = data[p.codigo];
@@ -114,7 +119,7 @@ const obtenerTabulacionApp = async (req, res) => {
                         if (k) conteos[k] = (conteos[k] || 0) + 1;
                     }
                 } else {
-                    const k = String(v).trim();
+                    const k = esResidencia ? (normalizarResidencia(v) || String(v).trim()) : String(v).trim();
                     conteos[k] = (conteos[k] || 0) + 1;
                     if (p.tipo === 'number') {
                         const n = Number(v);
