@@ -75,6 +75,18 @@ const PAISES = new Map([
     ['suiza', 'Suiza'], ['belgica', 'Bélgica'], ['suecia', 'Suecia'], ['noruega', 'Noruega'],
     ['china', 'China'], ['japon', 'Japón'], ['corea', 'Corea del Sur'], ['corea del sur', 'Corea del Sur'],
     ['australia', 'Australia'], ['india', 'India'], ['rusia', 'Rusia'],
+    // Gentilicios frecuentes (la gente a veces escribe su nacionalidad en vez del país).
+    ['colombiano', 'Colombia'], ['colombiana', 'Colombia'],
+    ['venezolano', 'Venezuela'], ['venezolana', 'Venezuela'],
+    ['peruano', 'Perú'], ['peruana', 'Perú'],
+    ['argentino', 'Argentina'], ['argentina', 'Argentina'],
+    ['chileno', 'Chile'], ['chilena', 'Chile'],
+    ['boliviano', 'Bolivia'], ['boliviana', 'Bolivia'],
+    ['uruguayo', 'Uruguay'], ['paraguayo', 'Paraguay'],
+    ['brasileno', 'Brasil'], ['brasilena', 'Brasil'],
+    ['mexicano', 'México'], ['mexicana', 'México'],
+    ['espanol', 'España'], ['espanola', 'España'],
+    ['estadounidense', 'Estados Unidos'], ['canadiense', 'Canadá'],
 ]);
 
 /**
@@ -95,13 +107,19 @@ function distancia(a, b) {
     return d[m][n];
 }
 
+const esEcuador = (c) =>
+    LUGARES_ECUADOR.has(c) || (Math.abs(c.length - 7) <= 2 && distancia(c, 'ecuador') <= 2);
+
 function normalizarResidencia(valor) {
     const clv = clave(valor);
     if (!clv) return null;
-    if (LUGARES_ECUADOR.has(clv)) return 'Ecuador';
+    if (esEcuador(clv)) return 'Ecuador';
     if (PAISES.has(clv)) return PAISES.get(clv);
-    // Tolera errores de tipeo frecuentes de "Ecuador" (Ecaudor, Ecuadro, Equador, Ecuadorr...).
-    if (Math.abs(clv.length - 7) <= 2 && distancia(clv, 'ecuador') <= 2) return 'Ecuador';
+    // Valores compuestos ("Milagro - Guayaquil", "Guayaquil Ecuador"): si algún token es un lugar
+    // del Ecuador o un país conocido, se usa ese. Primero se prioriza Ecuador.
+    const tokens = clv.split(/[^a-z]+/).filter((t) => t.length >= 3);
+    if (tokens.some((t) => esEcuador(t))) return 'Ecuador';
+    for (const t of tokens) if (PAISES.has(t)) return PAISES.get(t);
     return titulo(clv);
 }
 

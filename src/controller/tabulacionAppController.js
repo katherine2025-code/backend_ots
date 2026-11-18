@@ -176,23 +176,28 @@ const obtenerTabulacionApp = async (req, res) => {
         let demanda = null;
         if (esHotel) {
             let estab = 0, habDisp = 0, plazas = 0, nac = 0, ext = 0, per = 0, hab = 0;
-            const tarifas = [];
+            // La tarifa NO se promedia junta: "por persona" y "por habitación" son unidades
+            // distintas (un promedio mezclado no se comprende). Se separa por el tipo que reporta
+            // cada establecimiento (campo tipo_tarifa).
+            const tarPersona = [], tarHabitacion = [];
             const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+            const esPorPersona = (t) => String(t || '').toLowerCase().includes('persona');
             for (const r of respuestas) {
                 const d = r.respuestas || {};
                 estab++;
                 habDisp += num(d.num_habitaciones);
                 plazas += num(d.num_plazas);
+                const destino = esPorPersona(d.tipo_tarifa) ? tarPersona : tarHabitacion;
                 for (let n = 1; n <= 5; n++) {
                     nac += num(d[`fecha${n}_nacionales`]);
                     ext += num(d[`fecha${n}_extranjeros`]);
                     per += num(d[`fecha${n}_pernoctaciones`]);
                     hab += num(d[`fecha${n}_habitaciones`]);
                     const t = Number(d[`fecha${n}_tarifa`]);
-                    if (Number.isFinite(t) && t > 0) tarifas.push(t);
+                    if (Number.isFinite(t) && t > 0) destino.push(t);
                 }
             }
-            const tarifaProm = tarifas.length ? tarifas.reduce((a, b) => a + b, 0) / tarifas.length : null;
+            const prom = (arr) => arr.length ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 100) / 100 : null;
             demanda = {
                 establecimientos: estab,
                 habitaciones_disponibles: habDisp,
@@ -202,7 +207,8 @@ const obtenerTabulacionApp = async (req, res) => {
                 llegadas_total: nac + ext,
                 pernoctaciones: per,
                 habitaciones_ocupadas: hab,
-                tarifa_promedio: tarifaProm != null ? Math.round(tarifaProm * 100) / 100 : null
+                tarifa_promedio_persona: prom(tarPersona),
+                tarifa_promedio_habitacion: prom(tarHabitacion)
             };
         }
 
