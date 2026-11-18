@@ -20,8 +20,27 @@ const formatearPregunta = (p) => ({
     valorDefault: p.valor_default || undefined
 });
 
+// Cuenta las PREGUNTAS del instrumento (no los campos de la base). Varios campos pertenecen a
+// una sola pregunta: el gasto (P19) tiene 6 rubros, la satisfacción es una matriz de 5 aspectos,
+// y en hoteles la demanda se repite por fecha (hasta 5). Además, la cédula del encuestador no es
+// una pregunta para el encuestado. Agrupando esos campos, la encuesta turística da 26 preguntas.
+const contarPreguntasOficiales = (preguntas) => {
+    const familia = (p) => {
+        const c = (p.codigo || '');
+        if (c === 'cedula_encuestador') return null; // dato del encuestador, no cuenta
+        if (/^gasto_/.test(c)) return 'grupo:gasto';
+        if (/^satisfaccion_(informacion|atencion|seguridad|limpieza|calidad_precio)$/.test(c)) return 'grupo:satisfaccion_servicios';
+        if (/^fecha\d+_/.test(c)) return 'grupo:demanda:' + c.replace(/^fecha\d+_/, ''); // cada métrica una vez (no ×5)
+        return c;
+    };
+    const set = new Set();
+    for (const p of preguntas) { const f = familia(p); if (f) set.add(f); }
+    return set.size;
+};
+
 const formatearEncuesta = (e, conPreguntas = true) => {
     const preguntas = (e.preguntas || []).slice().sort((a, b) => a.orden - b.orden);
+    const totalPreguntas = contarPreguntasOficiales(preguntas);
     const salida = {
         id: e.id_encuesta,
         nombre: e.nombre,
@@ -29,7 +48,11 @@ const formatearEncuesta = (e, conPreguntas = true) => {
         tipo: e.tipo,
         activa: e.activa,
         fechaCreacion: e.created_at,
-        totalPreguntas: preguntas.length
+        totalPreguntas,
+        // Etiqueta a mostrar: hotel es formato MINTUR (tabla por fecha), no un conteo simple.
+        preguntasLabel: e.tipo === 'hotel'
+            ? 'Formato MINTUR (identificación + demanda por fecha)'
+            : `${totalPreguntas} preguntas`
     };
     if (conPreguntas) salida.preguntas = preguntas.map(formatearPregunta);
     return salida;

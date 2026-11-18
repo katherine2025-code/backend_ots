@@ -169,7 +169,44 @@ const obtenerTabulacionApp = async (req, res) => {
         }
 
         const secciones = [...porSeccion.entries()].map(([seccion, preguntas]) => ({ seccion, preguntas }));
-        res.json({ tipo, encuesta: encuesta.nombre, feriado: feriado || null, total, secciones });
+
+        // DEMANDA TURÍSTICA (solo hoteles): la tabla del formato MINTUR son números por fecha
+        // (Fecha 1..5), que la tabulación por opciones no muestra. Aquí se agregan los totales
+        // sumando todas las fechas de todos los establecimientos, tal como en el Anexo 1.
+        let demanda = null;
+        if (esHotel) {
+            let estab = 0, habDisp = 0, plazas = 0, nac = 0, ext = 0, per = 0, hab = 0;
+            const tarifas = [];
+            const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+            for (const r of respuestas) {
+                const d = r.respuestas || {};
+                estab++;
+                habDisp += num(d.num_habitaciones);
+                plazas += num(d.num_plazas);
+                for (let n = 1; n <= 5; n++) {
+                    nac += num(d[`fecha${n}_nacionales`]);
+                    ext += num(d[`fecha${n}_extranjeros`]);
+                    per += num(d[`fecha${n}_pernoctaciones`]);
+                    hab += num(d[`fecha${n}_habitaciones`]);
+                    const t = Number(d[`fecha${n}_tarifa`]);
+                    if (Number.isFinite(t) && t > 0) tarifas.push(t);
+                }
+            }
+            const tarifaProm = tarifas.length ? tarifas.reduce((a, b) => a + b, 0) / tarifas.length : null;
+            demanda = {
+                establecimientos: estab,
+                habitaciones_disponibles: habDisp,
+                plazas_disponibles: plazas,
+                checkin_nacionales: nac,
+                checkin_extranjeros: ext,
+                llegadas_total: nac + ext,
+                pernoctaciones: per,
+                habitaciones_ocupadas: hab,
+                tarifa_promedio: tarifaProm != null ? Math.round(tarifaProm * 100) / 100 : null
+            };
+        }
+
+        res.json({ tipo, encuesta: encuesta.nombre, feriado: feriado || null, total, secciones, demanda });
     } catch (error) {
         console.error('Error en tabulación de la app:', error.message);
         res.status(500).json({ error: error.message });
