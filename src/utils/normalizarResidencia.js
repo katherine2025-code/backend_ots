@@ -22,7 +22,7 @@ function titulo(clv) {
 
 // Lugares del Ecuador (provincias, cantones y ciudades frecuentes) → todos cuentan como "Ecuador".
 const LUGARES_ECUADOR = new Set([
-    'ecuador', 'republica del ecuador', 'el ecuador',
+    'ecuador', 'republica del ecuador', 'el ecuador', 'ecuatoriana', 'ecuatoriano',
     // Provincias
     'azuay', 'bolivar', 'canar', 'carchi', 'chimborazo', 'cotopaxi', 'el oro', 'esmeraldas',
     'galapagos', 'guayas', 'imbabura', 'loja', 'los rios', 'manabi', 'morona santiago', 'napo',
@@ -33,6 +33,7 @@ const LUGARES_ECUADOR = new Set([
     'montanita', 'ambato', 'machala', 'portoviejo', 'manta', 'riobamba', 'ibarra', 'milagro',
     'duran', 'guaranda', 'babahoyo', 'quevedo', 'latacunga', 'tulcan', 'azogues', 'tena', 'puyo',
     'macas', 'zamora', 'santo domingo', 'playas', 'general villamil playas', 'daule', 'samborondon',
+    'milagros', 'esmeralda',
     'jipijapa', 'chone', 'bahia de caraquez', 'ventanas', 'vinces', 'nueva loja', 'lago agrio',
     'esmeraldas', 'otavalo', 'cayambe', 'sangolqui', 'santa rosa', 'pasaje', 'huaquillas',
     'ancon', 'anconcito', 'chanduy', 'colonche', 'manglaralto', 'olon', 'ayangue', 'san pablo',
@@ -91,4 +92,11 @@ function normalizarResidencia(valor) {
     return titulo(clv);
 }
 
-module.exports = { normalizarResidencia };
+// Legible solo si, tras limpiarlo (sin tildes), queda compuesto únicamente por letras latinas
+// y espacios/guiones y tiene al menos dos letras. Descarta emojis, mojibake ("Ø<Ÿê") y símbolos.
+function residenciaLegible(valor) {
+    const c = clave(valor);
+    return /^[a-z][a-z' -]*$/.test(c) && c.replace(/[^a-z]/g, '').length >= 2;
+}
+
+module.exports = { normalizarResidencia, residenciaLegible };

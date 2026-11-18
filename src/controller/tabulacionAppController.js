@@ -7,7 +7,7 @@ const Encuesta = require('../models/Encuesta');
 const EncuestaPregunta = require('../models/EncuestaPregunta');
 const RespuestaEncuesta = require('../models/RespuestaEncuesta');
 const { MARGEN_ANALISIS_DIAS } = require('../utils/feriados');
-const { normalizarResidencia } = require('../utils/normalizarResidencia');
+const { normalizarResidencia, residenciaLegible } = require('../utils/normalizarResidencia');
 
 // Convierte un feriado (por nombre) a su rango de fechas [inicio, fin] usando la tabla
 // `feriados` + el mismo margen de análisis que usan Ocupación y el resto de Reportes, para
@@ -119,6 +119,7 @@ const obtenerTabulacionApp = async (req, res) => {
                         if (k) conteos[k] = (conteos[k] || 0) + 1;
                     }
                 } else {
+                    if (esResidencia && !residenciaLegible(v)) continue; // descarta basura/mojibake
                     const k = esResidencia ? (normalizarResidencia(v) || String(v).trim()) : String(v).trim();
                     conteos[k] = (conteos[k] || 0) + 1;
                     if (p.tipo === 'number') {
