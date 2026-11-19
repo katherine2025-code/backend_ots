@@ -180,6 +180,10 @@ const obtenerTabulacionApp = async (req, res) => {
             // distintas (un promedio mezclado no se comprende). Se separa por el tipo que reporta
             // cada establecimiento (campo tipo_tarifa).
             const tarPersona = [], tarHabitacion = [];
+            // Nº de establecimientos que cobran de cada forma (para mostrar el "n" junto a cada
+            // tarifa promedio: así se entiende sobre cuántos hoteles se calcula cada promedio y
+            // se amarra con la pregunta "Tipo de tarifa cobrada").
+            let nHotPersona = 0, nHotHabitacion = 0;
             const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
             const esPorPersona = (t) => String(t || '').toLowerCase().includes('persona');
             for (const r of respuestas) {
@@ -187,6 +191,8 @@ const obtenerTabulacionApp = async (req, res) => {
                 estab++;
                 habDisp += num(d.num_habitaciones);
                 plazas += num(d.num_plazas);
+                const tipoTarifa = String(d.tipo_tarifa || '').trim();
+                if (tipoTarifa) { if (esPorPersona(tipoTarifa)) nHotPersona++; else nHotHabitacion++; }
                 const destino = esPorPersona(d.tipo_tarifa) ? tarPersona : tarHabitacion;
                 for (let n = 1; n <= 5; n++) {
                     nac += num(d[`fecha${n}_nacionales`]);
@@ -208,7 +214,9 @@ const obtenerTabulacionApp = async (req, res) => {
                 pernoctaciones: per,
                 habitaciones_ocupadas: hab,
                 tarifa_promedio_persona: prom(tarPersona),
-                tarifa_promedio_habitacion: prom(tarHabitacion)
+                tarifa_promedio_habitacion: prom(tarHabitacion),
+                hoteles_tarifa_persona: nHotPersona,
+                hoteles_tarifa_habitacion: nHotHabitacion
             };
         }
 
