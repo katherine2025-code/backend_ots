@@ -13,6 +13,7 @@ const encuestaRoutes = require('./encuestaRoutes');
 const respuestaRoutes = require('./respuestaRoutes');
 const cronogramaRoutes = require('./cronogramaRoutes');
 const lugaresRoutes = require('./lugaresRoutes');
+const appRoutes = require('./appRoutes');
 
 router.use('/auth', authRoutes);
 router.use('/dashboard', dashboardRoutes);
@@ -26,5 +27,6 @@ router.use('/encuestas', encuestaRoutes);
 router.use('/respuestas', respuestaRoutes);
 router.use('/cronograma', cronogramaRoutes);
 router.use('/lugares', lugaresRoutes);
+router.use('/app', appRoutes);
 
 module.exports = router;
