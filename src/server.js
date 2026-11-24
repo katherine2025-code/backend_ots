@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const { connectDB } = require('./config/db');
 require('./models');
@@ -90,6 +91,12 @@ app.get('/test-cors', (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+
+// Paquetes web del Live Update (bundles .zip que descarga la app). Público: la app los baja
+// sin sesión. Se sirven fuera de /api para que la URL sea estable y cacheable.
+// Nota de despliegue: en Dokploy conviene que /uploads sea un VOLUMEN persistente, si no los
+// bundles se pierden al redesplegar y habría que volver a publicar.
+app.use('/app-bundles', express.static(path.join(__dirname, '../uploads/app-bundles')));
 
 // API
 app.use('/api', routes);
